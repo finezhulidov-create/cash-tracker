@@ -1,16 +1,19 @@
 package dev.zhulidov.cash_tracker.dto;
 
-import dev.zhulidov.cash_tracker.model.User;
+import dev.zhulidov.cash_tracker.model.Category;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
 
-public record CategoryCreateRequestDto(
+import java.math.BigDecimal;
+
+public record ExpenseCreateRequest(
         @NotBlank
-        @Size(min = 1, max = 50)
-        String categoryName,
+        String expense,
         @NotNull
         @Positive
-        Long userId) {
+        BigDecimal amount,
+        @NotNull
+        @Positive
+        Long categoryId) {
 }

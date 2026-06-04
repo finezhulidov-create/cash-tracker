@@ -2,9 +2,13 @@ package dev.zhulidov.cash_tracker.service;
 
 import dev.zhulidov.cash_tracker.dto.RegisterUserRequest;
 import dev.zhulidov.cash_tracker.dto.RegisterUserResponse;
+import dev.zhulidov.cash_tracker.dto.UserDto;
+import dev.zhulidov.cash_tracker.exception.ResourceNotFoundException;
 import dev.zhulidov.cash_tracker.model.User;
 import dev.zhulidov.cash_tracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,18 +21,23 @@ public class UserService {
 
     public RegisterUserResponse createUser(RegisterUserRequest request){
         User user =  User.builder().email(request.email())
-                .userName(request.username())
+                .name(request.username())
                 .password(encoder.encode(request.password()))
                 .build();
         var savedUser =  repository.save(user);
-        return new RegisterUserResponse(savedUser.getUserName(), savedUser.getEmail());
+        return new RegisterUserResponse(savedUser.getName(), savedUser.getEmail());
     }
 
     public void deleteUser(Long id){
         repository.deleteById(id);
     }
 
-    public User getUserById(Long id){
-        return repository.findById(id).orElseThrow(()-> new UsernameNotFoundException("User not found"));
+    public UserDto getUserById(Long id){
+        var user = repository.findById(id).orElseThrow(()-> new ResourceNotFoundException("User not found"));
+        return new UserDto(user.getName(),user.getEmail());
     }
+
+
+
+
 }

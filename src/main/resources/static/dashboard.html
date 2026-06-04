@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Tracker — Дашборд</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .navbar {
+            background: white;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar h1 { color: #4CAF50; }
+        .navbar button {
+            padding: 8px 16px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .content { padding: 32px; max-width: 1000px; margin: 0 auto; }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card h2 { margin-bottom: 16px; color: #333; font-size: 18px; }
+        .total { font-size: 36px; font-weight: bold; color: #4CAF50; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        button.green {
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.green:hover { background: #45a049; }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .amount { color: #f44336; font-weight: bold; }
+        .error { color: red; font-size: 13px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>💰 Cash Tracker</h1>
+    <button onclick="logout()">Выйти</button>
+</div>
+
+<div class="content">
+    <div class="cards">
+
+        <!-- Общая сумма трат -->
+        <div class="card">
+            <h2>Всего потрачено</h2>
+            <div class="total" id="totalAmount">0 ₽</div>
+        </div>
+
+        <!-- Добавить категорию -->
+        <div class="card">
+            <h2>Новая категория</h2>
+            <input type="text" id="categoryName" placeholder="Название категории"/>
+            <button class="green" onclick="createCategory()">Добавить</button>
+            <div class="error" id="categoryError"></div>
+        </div>
+
+        <!-- Добавить трату -->
+        <div class="card">
+            <h2>Новая трата</h2>
+            <input type="text" id="expenseName" placeholder="Название траты"/>
+            <input type="number" id="expenseAmount" placeholder="Сумма"/>
+            <select id="expenseCategory">
+                <option value="">Выберите категорию</option>
+            </select>
+            <button class="green" onclick="createExpense()">Добавить</button>
+            <div class="error" id="expenseError"></div>
+        </div>
+
+    </div>
+
+    <!-- Список трат -->
+    <div class="card">
+        <h2>Последние траты</h2>
+        <select id="filterCategory" onchange="loadExpenses()">
+            <option value="">Все категории</option>
+        </select>
+        <div id="expensesList"></div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+    console.log('скрипт запустился');
+
+   if (!getToken()) window.location.href = '/index.html';
+
+   // userId берём из токена (decode JWT)
+   function getUserId() {
+       const token = getToken();
+       if (!token) return null;
+       const payload = JSON.parse(atob(token.split('.')[1]));
+       return payload.userId;
+   }
+
+
+   let currentUserId = getUserId();
+
+   async function loadTotal() {
+       const response = await request('GET', `/expenses/users/${currentUserId}`);
+       if (response && response.ok) {
+           const total = await response.text();
+           document.getElementById('totalAmount').textContent = total + ' ₽';
+       }
+   }
+
+  async function loadCategories() {
+    const response = await request('GET', `/categories/users/${currentUserId}`);
+    if (response && response.ok) {
+        const categories = await response.json();
+        const expenseSelect = document.getElementById('expenseCategory');
+        const filterSelect = document.getElementById('filterCategory');
+
+        expenseSelect.innerHTML = '<option value="">Выберите категорию</option>';
+        filterSelect.innerHTML = '<option value="">Все категории</option>';
+
+        categories.forEach(cat => {
+            expenseSelect.innerHTML += `<option value="${cat.id}">${cat.categoryName}</option>`;
+            filterSelect.innerHTML += `<option value="${cat.id}">${cat.categoryName}</option>`;
+        });
+    }
+}
+   async function createCategory() {
+       const name = document.getElementById('categoryName').value;
+       if (!name) return;
+
+       const response = await request('POST', '/categories', {
+           categoryName: name,
+           userId: currentUserId
+       });
+
+       if (response && response.ok) {
+           document.getElementById('categoryName').value = '';
+           document.getElementById('categoryError').textContent = '';
+           await loadCategories();
+       } else {
+           document.getElementById('categoryError').textContent = 'Ошибка при создании категории';
+       }
+   }
+
+   async function createExpense() {
+       const name = document.getElementById('expenseName').value;
+       const amount = document.getElementById('expenseAmount').value;
+       const categoryId = document.getElementById('expenseCategory').value;
+
+       if (!name || !amount || !categoryId) {
+           document.getElementById('expenseError').textContent = 'Заполните все поля';
+           return;
+       }
+
+       const response = await request('POST', '/expenses', {
+           expense: name,
+           amount: parseFloat(amount),
+           categoryId: parseInt(categoryId)
+       });
+
+       if (response && response.ok) {
+           document.getElementById('expenseName').value = '';
+           document.getElementById('expenseAmount').value = '';
+           document.getElementById('expenseError').textContent = '';
+           await loadTotal();
+           await loadExpenses();
+       } else {
+           document.getElementById('expenseError').textContent = 'Ошибка при добавлении траты';
+       }
+   }
+
+   async function loadExpenses() {
+       const categoryId = document.getElementById('filterCategory').value;
+       let response;
+
+       if (categoryId) {
+           response = await request('GET', `/expenses/categories/${categoryId}`);
+       } else {
+           response = await request('GET', `/expenses/users/${currentUserId}/all`);
+       }
+
+       if (response && response.ok) {
+           const expenses = await response.json();
+           const list = document.getElementById('expensesList');
+           list.innerHTML = expenses.map(e => `
+               <div class="list-item">
+                   <span>${e.expense}</span>
+                   <span>${e.dateTime.substring(0, 10)}</span>
+                   <span class="amount">-${e.amount} ₽</span>
+               </div>
+           `).join('');
+       }
+   }
+
+   function logout() {
+       removeToken();
+       window.location.href = '/index.html';
+   }
+
+   // Инициализация
+
+   loadTotal();
+   loadCategories();
+    loadExpenses();
+
+
+
+</script>
+</body>
+</html>
