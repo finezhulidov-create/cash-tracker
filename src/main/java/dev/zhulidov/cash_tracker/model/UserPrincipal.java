@@ -1,11 +1,8 @@
 package dev.zhulidov.cash_tracker.model;
 
 import lombok.*;
-import org.springframework.context.support.BeanDefinitionDsl;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
 import java.util.List;
 
