@@ -10,7 +10,7 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 @RequiredArgsConstructor
-@NoArgsConstructor
+
 public class UserPrincipal implements UserDetails {
     private Long id;
     private String email;

@@ -4,6 +4,7 @@ import dev.zhulidov.cash_tracker.dto.LoginRequest;
 import dev.zhulidov.cash_tracker.dto.RegisterUserRequest;
 import dev.zhulidov.cash_tracker.dto.RegisterUserResponse;
 import dev.zhulidov.cash_tracker.model.User;
+import dev.zhulidov.cash_tracker.model.UserPrincipal;
 import dev.zhulidov.cash_tracker.service.CustomUserDetailsService;
 import dev.zhulidov.cash_tracker.service.JwtService;
 import dev.zhulidov.cash_tracker.service.UserService;
@@ -33,7 +34,7 @@ public class AuthController {
      var auth =   authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(),request.password())
         );
-        User user = (User) auth.getPrincipal();
+        UserPrincipal user = (UserPrincipal) auth.getPrincipal();
         return ResponseEntity.ok(jwtService.generateToken(request.email(),user.getId()));
 
     }
