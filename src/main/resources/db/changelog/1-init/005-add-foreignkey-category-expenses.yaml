@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 5-add-fk-expenses-category
+      author: zhulidovdev
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: expenses
+            baseColumnNames: category_id
+            constraintName: fk_expenses_category
+            referencedTableName: categories
+            referencedColumnNames: id
+            onDelete: CASCADE

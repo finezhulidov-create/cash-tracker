@@ -12,8 +12,6 @@ public record ExpenseCreateRequest(
         String expense,
         @NotNull
         @Positive
-        BigDecimal amount,
-        @NotNull
-        @Positive
-        Long categoryId) {
+        BigDecimal amount
+       ) {
 }

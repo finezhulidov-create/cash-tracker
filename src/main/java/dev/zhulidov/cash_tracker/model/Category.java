@@ -11,6 +11,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name="categories")
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +23,6 @@ public class Category {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @OneToMany(mappedBy = "expense")
+    @OneToMany(mappedBy = "category")
     private List<Expense> expensies;
 }

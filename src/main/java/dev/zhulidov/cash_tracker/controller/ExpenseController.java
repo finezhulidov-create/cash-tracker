@@ -27,11 +27,7 @@ import java.util.List;
 public class ExpenseController {
     private final ExpenseService service;
 
-    @PostMapping
-    public ResponseEntity<ExpenseDto> createExpense(@RequestBody @Valid ExpenseCreateRequest request,
-                                                    @AuthenticationPrincipal UserPrincipal principal){
-        return ResponseEntity.ok(service.createExpense(request, principal.getId()));
-    }
+
 
     @DeleteMapping("/{expenseId}")
     public ResponseEntity<Void> deleteExpense(@AuthenticationPrincipal UserPrincipal principal,

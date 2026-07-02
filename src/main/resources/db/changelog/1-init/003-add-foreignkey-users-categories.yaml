@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 3-add-fk-categories-user
+      author: zhulidovdev
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: categories
+            baseColumnNames: user_id
+            constraintName: fk_categories_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE

@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findAllByUser_Id(Long id);
+
+    List<Category> findAllByExpensies_Category_Id(Long id);
 }

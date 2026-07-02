@@ -10,6 +10,7 @@ import dev.zhulidov.cash_tracker.repository.ExpenseRepository;
 import dev.zhulidov.cash_tracker.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,8 +22,8 @@ public class ExpenseService {
   private final   ExpenseRepository repository;
   private final   CategoryRepository categoryRepository;
 
-    public ExpenseDto createExpense(ExpenseCreateRequest request, Long userId ){
-        var category = categoryRepository.findById(request.categoryId())
+    public ExpenseDto createExpense(ExpenseCreateRequest request, Long userId,Long categoryId ){
+        var category = categoryRepository.findById(categoryId)
                 .orElseThrow(()-> new ResourceNotFoundException("Category Not Found"));
         var expense = Expense.builder()
                 .expense(request.expense())
@@ -82,4 +83,6 @@ public class ExpenseService {
                 .map(e-> new ExpenseDto(e.getExpense(),e.getAmount(),e.getDateTime()))
                 .toList();
     }
+
+
 }

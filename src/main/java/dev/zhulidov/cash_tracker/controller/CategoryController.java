@@ -1,10 +1,10 @@
 package dev.zhulidov.cash_tracker.controller;
 
-import dev.zhulidov.cash_tracker.dto.CategoryCreateRequestDto;
-import dev.zhulidov.cash_tracker.dto.CategoryDto;
-import dev.zhulidov.cash_tracker.dto.CategoryUpdateRequestDto;
-import dev.zhulidov.cash_tracker.dto.ExpenseDto;
+import dev.zhulidov.cash_tracker.dto.*;
+import dev.zhulidov.cash_tracker.exception.ResourceNotFoundException;
+import dev.zhulidov.cash_tracker.model.Expense;
 import dev.zhulidov.cash_tracker.model.UserPrincipal;
+import dev.zhulidov.cash_tracker.repository.CategoryRepository;
 import dev.zhulidov.cash_tracker.service.CategoryService;
 import dev.zhulidov.cash_tracker.service.ExpenseService;
 import jakarta.validation.Valid;
@@ -25,7 +25,14 @@ import java.util.List;
 public class CategoryController {
     private final CategoryService service;
     private final ExpenseService expenseService;
+    private final CategoryRepository repository;
 
+    @PostMapping("/{categoryId}")
+    public ResponseEntity<ExpenseDto> createExpense(@RequestBody @Valid ExpenseCreateRequest request,
+                                                    @AuthenticationPrincipal UserPrincipal principal,
+                                                    @PathVariable @Positive Long categoryId){
+        return ResponseEntity.ok(expenseService.createExpense(request, principal.getId(),categoryId));
+    }
     @PostMapping
     public ResponseEntity<CategoryDto> createCategory(@RequestBody @Valid CategoryCreateRequestDto request, @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(service.createCategory(request, principal.getId()));
@@ -61,5 +68,6 @@ public class CategoryController {
                                                                   @PathVariable("categoryId") @Positive Long categoryId){
         return ResponseEntity.ok(expenseService.getExpensesByCategoryId(categoryId, principal.getId()));
     }
+
 }
 
