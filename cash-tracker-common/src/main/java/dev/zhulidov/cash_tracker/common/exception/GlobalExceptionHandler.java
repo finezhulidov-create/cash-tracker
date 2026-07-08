@@ -42,4 +42,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
 
     }
+    @ExceptionHandler(TransactionSplitMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(TransactionSplitMismatchException exception){
+        ErrorResponse error = ErrorResponse.from(HttpStatus.BAD_REQUEST.value(), exception.getMessage(),LocalDateTime.now(),"NOT_VALID_TRANSACTION_SPLIT_SUM");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
 }

@@ -23,5 +23,5 @@ public class Category {
     private Long userId;
 
     @OneToMany(mappedBy = "category")
-    private List<Expense> expensies;
+    private List<TransactionSplit> transactionSplits;
 }
