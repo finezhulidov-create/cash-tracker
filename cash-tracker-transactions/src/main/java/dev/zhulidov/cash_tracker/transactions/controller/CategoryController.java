@@ -21,7 +21,8 @@ import java.util.List;
 public class CategoryController {
     private final CategoryService service;
 
-
+    //todo контроллеры работы со сплитами(и в сервисе то же самое)
+    //todo redis добавить
 
 
     @PostMapping
