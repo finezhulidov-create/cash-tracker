@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 9-add-fk-split-transaction
+      author: zhulidovdev
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: transaction_split
+            baseColumnNames: transaction_id
+            constraintName: fk_split_transaction
+            referencedTableName: transaction
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 10-add-fk-split-category
+      author: zhulidovdev
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: transaction_split
+            baseColumnNames: category_id
+            constraintName: fk_split_category
+            referencedTableName: categories
+            referencedColumnNames: id
+            onDelete: CASCADE

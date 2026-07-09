@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 7-add-fk-transaction-user
+      author: zhulidovdev
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: transaction
+            baseColumnNames: user_id
+            constraintName: fk_transaction_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE

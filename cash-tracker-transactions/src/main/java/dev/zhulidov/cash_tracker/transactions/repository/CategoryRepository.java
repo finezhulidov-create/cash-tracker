@@ -8,5 +8,5 @@ import java.util.List;
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findAllByUserId(Long id);
 
-    List<Category> findAllByExpensies_Category_Id(Long id);
+    List<Category> findAllByTransactionSplits_Category_Id(Long id);
 }

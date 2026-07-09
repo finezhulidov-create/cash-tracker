@@ -25,9 +25,9 @@ public class Transaction {
     private BigDecimal amount;
     @Column(name = "description", nullable = false)
     private String description;
-    @Column(name = "date", nullable = false)
+    @Column(name = "date_time", nullable = false)
     private LocalDateTime dateTime;
-    @OneToMany(mappedBy = "transaction")
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TransactionSplit> splits;
 
 }
