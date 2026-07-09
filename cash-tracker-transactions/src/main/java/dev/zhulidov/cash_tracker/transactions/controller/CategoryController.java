@@ -3,9 +3,7 @@ package dev.zhulidov.cash_tracker.transactions.controller;
 import dev.zhulidov.cash_tracker.transactions.dto.*;
 
 import dev.zhulidov.cash_tracker.common.security.UserPrincipal;
-import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
 import dev.zhulidov.cash_tracker.transactions.service.CategoryService;
-import dev.zhulidov.cash_tracker.transactions.service.ExpenseService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -22,15 +20,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService service;
-    private final ExpenseService expenseService;
 
 
-    @PostMapping("/{categoryId}")
-    public ResponseEntity<ExpenseDto> createExpense(@RequestBody @Valid ExpenseCreateRequest request,
-                                                    @AuthenticationPrincipal UserPrincipal principal,
-                                                    @PathVariable @Positive Long categoryId){
-        return ResponseEntity.ok(expenseService.createExpense(request, principal.getId(),categoryId));
-    }
+
+
     @PostMapping
     public ResponseEntity<CategoryDto> createCategory(@RequestBody @Valid CategoryCreateRequestDto request, @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(service.createCategory(request, principal.getId()));
@@ -61,11 +54,7 @@ public class CategoryController {
         return ResponseEntity.ok(service.getCategoriesByUserId(principal.getId()));
     }
 
-    @GetMapping("/{categoryId}/expenses")
-    public ResponseEntity<List<ExpenseDto>> getExpensesByCategory(@AuthenticationPrincipal UserPrincipal principal,
-                                                                  @PathVariable("categoryId") @Positive Long categoryId){
-        return ResponseEntity.ok(expenseService.getExpensesByCategoryId(categoryId, principal.getId()));
-    }
+
 
 }
 

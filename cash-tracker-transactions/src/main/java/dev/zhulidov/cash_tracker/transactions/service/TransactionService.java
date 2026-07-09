@@ -3,17 +3,17 @@ package dev.zhulidov.cash_tracker.transactions.service;
 import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
 import dev.zhulidov.cash_tracker.common.util.SecurityUtils;
 import dev.zhulidov.cash_tracker.common.util.SplitValidationUtils;
-import dev.zhulidov.cash_tracker.transactions.dto.TransactionCreateRequest;
-import dev.zhulidov.cash_tracker.transactions.dto.TransactionDto;
-import dev.zhulidov.cash_tracker.transactions.dto.TransactionUpdateRequest;
+import dev.zhulidov.cash_tracker.transactions.dto.*;
 import dev.zhulidov.cash_tracker.transactions.model.Transaction;
 import dev.zhulidov.cash_tracker.transactions.model.TransactionMapper;
 import dev.zhulidov.cash_tracker.transactions.model.TransactionSplit;
 import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
 import dev.zhulidov.cash_tracker.transactions.repository.TransactionRepository;
+import dev.zhulidov.cash_tracker.transactions.util.TransactionSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +28,7 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
     private final TransactionMapper transactionMapper;
 
-    @Transactional(rollbackFor = RuntimeException.class) //todo tests!!!
+    @Transactional(rollbackFor = RuntimeException.class)
     public TransactionDto createTransaction(TransactionCreateRequest request, Long userId){
               var trans = Transaction.builder()
                 .amount(request.amount())
@@ -108,10 +108,15 @@ public class TransactionService {
        return transactionRepository.sumAmountByUserIdAndDateTimeBetween(userId, from, to);
     }
 
-    public Page<TransactionDto> getAllTransactionsByDateRange(Long userId, LocalDateTime from, LocalDateTime to, Pageable pageable){
-        var transByDate = transactionRepository.findAllByUserIdAndDateTimeBetween(userId, from, to, pageable);
-        return transactionMapper.toDtoPage(transByDate);
-    }
 
+    public Page<TransactionDto> getTransactions(Long userId, TransactionSearchCriteria criteria, Pageable pageable){
+        Specification<Transaction> spec =
+                TransactionSpecifications.hasUserId(userId)
+                .and(TransactionSpecifications.hasCategoryId(criteria.getCategoryId()))
+                .and(TransactionSpecifications.amountBetween(criteria.getMinAmount(),criteria.getMaxAmount()))
+                .and(TransactionSpecifications.dateBetween(criteria.getFrom(),criteria.getTo()));
+        var page = transactionRepository.findAll(spec,pageable);
+        return transactionMapper.toDtoPage(page);
+    }
 
 }
