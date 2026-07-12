@@ -11,6 +11,7 @@ import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
 import dev.zhulidov.cash_tracker.transactions.repository.TransactionRepository;
 import dev.zhulidov.cash_tracker.transactions.util.TransactionSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -27,6 +29,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionMapper transactionMapper;
+    private final CacheManager cacheManager;
 
     @Transactional(rollbackFor = RuntimeException.class)
     public TransactionDto createTransaction(TransactionCreateRequest request, Long userId){
@@ -52,7 +55,7 @@ public class TransactionService {
         SplitValidationUtils.assertSplit(trans.getAmount(),
                 trans.getSplits().stream().map(TransactionSplit::getAmount).toList());
         transactionRepository.save(trans);
-
+        evictSplitsCache(userId,splits);
         return transactionMapper.toDto(trans);
     }
 
@@ -62,6 +65,7 @@ public class TransactionService {
                 .orElseThrow(()-> new ResourceNotFoundException("Transaction not found"));
         SecurityUtils.assertOwner(trans.getUserId(),userId);
         transactionRepository.deleteById(id);
+        evictSplitsCache(userId,trans.getSplits());
     }
 
 
@@ -70,6 +74,7 @@ public class TransactionService {
         var trans = transactionRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Transaction not fouund"));
         SecurityUtils.assertOwner(trans.getUserId(),userId);
+        List<TransactionSplit> oldSplit = new ArrayList<>(trans.getSplits());
         List<TransactionSplit> splits = request.splits().
                 stream().map(split-> {
                     var category = categoryRepository.findById(split.categoryDto().id())
@@ -81,6 +86,7 @@ public class TransactionService {
                         .transaction(trans)
                         .build();}
                 ).toList();
+
        trans.setDescription(request.description());
        trans.setAmount(request.amount());
        trans.setDateTime(request.dateTime());
@@ -89,6 +95,8 @@ public class TransactionService {
        SplitValidationUtils.assertSplit(trans.getAmount(),splits.stream()
                .map(TransactionSplit::getAmount).toList());
        transactionRepository.save(trans);
+       evictSplitsCache(userId, oldSplit);
+       evictSplitsCache(userId, splits);
         return transactionMapper.toDto(trans);
     }
 
@@ -119,4 +127,13 @@ public class TransactionService {
         return transactionMapper.toDtoPage(page);
     }
 
+    private void evictSplitsCache(Long userId, List<TransactionSplit> splits){
+        var cache = cacheManager.getCache("splits");
+        if (cache != null){
+            splits.stream()
+                    .map(split -> split.getCategory().getId())
+                    .distinct()
+                    .forEach(catId -> cache.evict(userId + ":" + catId));
+        }
+    }
 }
