@@ -32,7 +32,7 @@ public class CategoryService {
 
         var category = Category.builder()
                 .categoryName(requestDto.categoryName())
-                .userId(userLookUpService.getUserInfo(userId).id())
+                .userId(userId)
                 .build();
         var savedCategory = repository.save(category);
         return categoryMapper.toDto(savedCategory);
@@ -61,15 +61,17 @@ public class CategoryService {
     }
 
     public List<CategoryDto> getCategoriesByUserId(Long userId){
+        String userName = userLookUpService.getUserInfo(userId).userName();
         return repository.findAllByUserId(userId).stream()
-                .map(cat-> new CategoryDto(cat.getId(),cat.getCategoryName(), userLookUpService.getUserInfo(userId).userName()))
+                .map(categoryMapper::toDto)
                 .toList();
     }
 
     public Page<TransactionSplitDto> getSplitsByCategory(Long userId, Long categoryId, Pageable pageable){
-        var splitsPage = splitRepository.findAllByCategory_Id(categoryId,pageable);
         SecurityUtils.assertOwner(repository.findById(categoryId)
                 .orElseThrow(()-> new ResourceNotFoundException("Category not found")).getUserId(),userId);
+        var splitsPage = splitRepository.findAllByCategory_Id(categoryId,pageable);
+
         return transactionSplitMapper.toDtoPage(splitsPage);
 
     }

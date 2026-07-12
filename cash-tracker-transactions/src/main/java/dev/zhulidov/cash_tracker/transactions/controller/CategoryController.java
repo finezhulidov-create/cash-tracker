@@ -4,9 +4,14 @@ import dev.zhulidov.cash_tracker.transactions.dto.*;
 
 import dev.zhulidov.cash_tracker.common.security.UserPrincipal;
 import dev.zhulidov.cash_tracker.transactions.service.CategoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -54,8 +59,20 @@ public class CategoryController {
     public ResponseEntity<List<CategoryDto>> getCategoriesByUser(@AuthenticationPrincipal UserPrincipal principal){
         return ResponseEntity.ok(service.getCategoriesByUserId(principal.getId()));
     }
-
-
+    @Operation(
+            summary = "Get all splits by Category ID",
+            description = "Retrieve all splits belonging to this category."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All splits successfully retrieved."),
+            @ApiResponse(responseCode = "404", description = "Category not found or inaccessible")
+    })
+    @GetMapping("/{categoryId}/splits")
+    public Page<TransactionSplitDto> getSplits(@AuthenticationPrincipal UserPrincipal principal,
+                                               @PathVariable("categoryId") @Positive Long categoryId,
+                                               Pageable pageable){
+        return service.getSplitsByCategory(principal.getId(), categoryId, pageable);
+    }
 
 }
 
