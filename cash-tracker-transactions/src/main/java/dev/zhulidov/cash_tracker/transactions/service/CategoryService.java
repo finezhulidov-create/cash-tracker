@@ -61,11 +61,9 @@ public class CategoryService {
         return categoryMapper.toDto(savedCat);
     }
     @Cacheable(value = "categories", key = "#userId")
-    public List<CategoryDto> getCategoriesByUserId(Long userId){
-
-        return repository.findAllByUserId(userId).stream()
-                .map(categoryMapper::toDto)
-                .toList();
+    public Page<CategoryDto> getCategoriesByUserId(Long userId, Pageable pageable){
+      Page<Category> page =  repository.findAllByUserId(userId, pageable);
+      return categoryMapper.toDtoPage(page);
     }
     @Cacheable(value = "splits", key = "#userId + ':' + #categoryId")
     public Page<TransactionSplitDto> getSplitsByCategory(Long userId, Long categoryId, Pageable pageable){

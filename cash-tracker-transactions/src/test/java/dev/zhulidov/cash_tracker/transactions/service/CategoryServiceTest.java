@@ -16,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
@@ -174,28 +176,37 @@ class CategoryServiceTest {
     // ==================== getCategoriesByUserId ====================
 
     @Test
-    void getCategoriesByUserId_whenCategoriesExist_returnsMappedList() {
+    void getCategoriesByUserId_whenCategoriesExist_returnsMappedPage() {
         var cat1 = Category.builder().id(1L).categoryName("Food").userId(OWNER_ID).build();
         var cat2 = Category.builder().id(2L).categoryName("Transport").userId(OWNER_ID).build();
         var dto1 = new CategoryDto(1L, "Food", null);
         var dto2 = new CategoryDto(2L, "Transport", null);
+        var pageable = PageRequest.of(0, 10);
+        var entityPage = new PageImpl<>(List.of(cat1, cat2), pageable, 2);
+        var dtoPage = new PageImpl<>(List.of(dto1, dto2), pageable, 2);
 
-        when(repository.findAllByUserId(OWNER_ID)).thenReturn(List.of(cat1, cat2));
-        when(categoryMapper.toDto(cat1)).thenReturn(dto1);
-        when(categoryMapper.toDto(cat2)).thenReturn(dto2);
+        when(repository.findAllByUserId(OWNER_ID, pageable)).thenReturn(entityPage);
+        when(categoryMapper.toDtoPage(entityPage)).thenReturn(dtoPage);
 
-        var result = categoryService.getCategoriesByUserId(OWNER_ID);
+        var result = categoryService.getCategoriesByUserId(OWNER_ID, pageable);
 
-        assertEquals(List.of(dto1, dto2), result);
+        assertEquals(dtoPage, result);
+        assertEquals(2, result.getTotalElements());
     }
 
     @Test
-    void getCategoriesByUserId_whenNoCategories_returnsEmptyList() {
-        when(repository.findAllByUserId(OWNER_ID)).thenReturn(List.of());
+    void getCategoriesByUserId_whenNoCategories_returnsEmptyPage() {
+        var pageable = PageRequest.of(0, 10);
+        var emptyEntityPage = new PageImpl<Category>(List.of(), pageable, 0);
+        var emptyDtoPage = new PageImpl<CategoryDto>(List.of(), pageable, 0);
 
-        var result = categoryService.getCategoriesByUserId(OWNER_ID);
+        when(repository.findAllByUserId(OWNER_ID, pageable)).thenReturn(emptyEntityPage);
+        when(categoryMapper.toDtoPage(emptyEntityPage)).thenReturn(emptyDtoPage);
 
-        assertTrue(result.isEmpty());
+        var result = categoryService.getCategoriesByUserId(OWNER_ID, pageable);
+
+        assertTrue(result.getContent().isEmpty());
+        assertEquals(0, result.getTotalElements());
     }
 
     // ==================== getSplitsByCategory ====================
