@@ -15,6 +15,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -105,9 +106,10 @@ public class TransactionController {
 
     })
     @GetMapping("/all")
-    public Page<TransactionDto> getAllTransactions(@AuthenticationPrincipal UserPrincipal principal,
+    public PagedModel<TransactionDto> getAllTransactions(@AuthenticationPrincipal UserPrincipal principal,
                                                    Pageable pageable){
-        return transactionService.getAllTransactionsByUser(principal.getId(), pageable);
+        Page<TransactionDto> page = transactionService.getAllTransactionsByUser(principal.getId(), pageable);
+        return new PagedModel<>(page);
     }
     @Operation(summary = "Get total amount by date range")
     @ApiResponses({
@@ -130,9 +132,10 @@ public class TransactionController {
             @ApiResponse(responseCode = "200", description = "Transactions successfully retrieved")
     })
     @GetMapping("/filter")
-    public Page<TransactionDto> getTransactions(@AuthenticationPrincipal UserPrincipal principal, Pageable pageable,
-                                                @ModelAttribute TransactionSearchCriteria criteria){
-        return transactionService.getTransactions(principal.getId(), criteria, pageable);
+    public PagedModel<TransactionDto> getTransactions(@AuthenticationPrincipal UserPrincipal principal, Pageable pageable,
+                                                      @ModelAttribute TransactionSearchCriteria criteria){
+        Page<TransactionDto> transactions = transactionService.getTransactions(principal.getId(), criteria, pageable);
+        return new PagedModel<>(transactions);
     }
 }
 
