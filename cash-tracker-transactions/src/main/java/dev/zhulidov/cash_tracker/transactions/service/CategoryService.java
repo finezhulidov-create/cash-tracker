@@ -81,7 +81,7 @@ public class CategoryService {
         return new PageImpl<>(pageContent, pageable, allSplits.size());
 
     }
-    @Cacheable(value = "splits", key = "#userId" + ':' + "#categoryId")
+    @Cacheable(value = "splits", key = "#userId + ':' + #categoryId")
     private List<TransactionSplitDto> getCachedSplitByCategory(Long userId, Long categoryId){
         var splits = splitRepository.findAllByCategory_Id(categoryId);
         return splits.stream()
