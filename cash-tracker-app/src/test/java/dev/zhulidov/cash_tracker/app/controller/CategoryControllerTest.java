@@ -228,9 +228,13 @@ class CategoryControllerTest {
     // ==================== GET /categories/mine ====================
 
     @Test
-    void getCategoriesByUser_returns200WithList() throws Exception {
-        when(categoryService.getCategoriesByUserId(OWNER_ID))
-                .thenReturn(List.of(new CategoryDto(1L, "Food", null), new CategoryDto(2L, "Transport", null)));
+    void getCategoriesByUser_returns200WithPage() throws Exception {
+        var dto1 =  new CategoryDto(1L, "Food", null);
+        var dto2 = new CategoryDto(2L, "Transport", null);
+        var pageable = PageRequest.of(0,2);
+        var pageDto = new PageImpl<CategoryDto>(List.of(dto1, dto2),pageable,2);
+        when(categoryService.getCategoriesByUserId(OWNER_ID, pageable))
+                .thenReturn(pageDto );
 
         mockMvc.perform(get("/categories/mine")
                         .with(authentication(authToken())))
