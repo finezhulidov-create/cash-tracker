@@ -130,9 +130,10 @@ public class TransactionController {
             @ApiResponse(responseCode = "200", description = "Transactions successfully retrieved")
     })
     @GetMapping("/filter")
-    public Page<TransactionDto> getTransactions(@AuthenticationPrincipal UserPrincipal principal, Pageable pageable,
-                                                @ModelAttribute TransactionSearchCriteria criteria){
-        return transactionService.getTransactions(principal.getId(), criteria, pageable);
+    public PagedModel<TransactionDto> getTransactions(@AuthenticationPrincipal UserPrincipal principal, Pageable pageable,
+                                                      @ModelAttribute TransactionSearchCriteria criteria){
+        Page<TransactionDto> transactions = transactionService.getTransactions(principal.getId(), criteria, pageable);
+        return new PagedModel<>(transactions);
     }
 }
 
