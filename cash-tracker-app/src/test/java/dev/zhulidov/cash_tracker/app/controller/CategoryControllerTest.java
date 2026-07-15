@@ -231,27 +231,26 @@ class CategoryControllerTest {
     void getCategoriesByUser_returns200WithPage() throws Exception {
         var dto1 =  new CategoryDto(1L, "Food", null);
         var dto2 = new CategoryDto(2L, "Transport", null);
-        var pageable = PageRequest.of(0,2);
-        var pageDto = new PageImpl<CategoryDto>(List.of(dto1, dto2),pageable,2);
-        when(categoryService.getCategoriesByUserId(OWNER_ID, pageable))
-                .thenReturn(pageDto );
+
+        var pageDto = new PageImpl<CategoryDto>(List.of(dto1, dto2),PageRequest.of(0,2),2);
+        when(categoryService.getCategoriesByUserId(eq(OWNER_ID), any())).thenReturn(pageDto);
 
         mockMvc.perform(get("/categories/mine")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2));
     }
 
     @Test
     void getCategoriesByUser_whenEmpty_returns200WithEmptyPage() throws Exception {
-        var pageable = PageRequest.of(0, 10);
-        var emptyDtoPage = new PageImpl<CategoryDto>(List.of(), pageable, 0);
-        when(categoryService.getCategoriesByUserId(OWNER_ID,pageable)).thenReturn(emptyDtoPage);
+
+        var emptyDtoPage = new PageImpl<CategoryDto>(List.of(), PageRequest.of(0, 10), 0);
+        when(categoryService.getCategoriesByUserId(eq(OWNER_ID),any())).thenReturn(emptyDtoPage);
 
         mockMvc.perform(get("/categories/mine")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content.length()").value(0));
     }
 
     // ==================== GET /categories/{id}/splits ====================
