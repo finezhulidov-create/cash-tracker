@@ -107,7 +107,8 @@ public class TransactionController {
     @GetMapping("/all")
     public Page<TransactionDto> getAllTransactions(@AuthenticationPrincipal UserPrincipal principal,
                                                    Pageable pageable){
-        return transactionService.getAllTransactionsByUser(principal.getId(), pageable);
+        Page<TransactionDto> page = transactionService.getAllTransactionsByUser(principal.getId(), pageable);
+        return new PagedModel<>(page);
     }
     @Operation(summary = "Get total amount by date range")
     @ApiResponses({
