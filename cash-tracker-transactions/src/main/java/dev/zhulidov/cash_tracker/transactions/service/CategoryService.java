@@ -67,11 +67,11 @@ public class CategoryService {
                 .map(categoryMapper::toDto)
                 .toList();
     }
-
+    @Cacheable(value = "splits", key = "#userId + ':' + #categoryId")
     public Page<TransactionSplitDto> getSplitsByCategory(Long userId, Long categoryId, Pageable pageable){
         SecurityUtils.assertOwner(repository.findById(categoryId)
                 .orElseThrow(()-> new ResourceNotFoundException("Category not found")).getUserId(),userId);
-      List<TransactionSplitDto> allSplits = getCachedSplitByCategory(userId,categoryId);
+      List<TransactionSplitDto> allSplits = getCachedSplitByCategory(categoryId);
       int start = (int) pageable.getOffset();
       int end = Math.min(start + pageable.getPageSize(), allSplits.size());
       List<TransactionSplitDto> pageContent = start > allSplits.size()
@@ -81,8 +81,8 @@ public class CategoryService {
         return new PageImpl<>(pageContent, pageable, allSplits.size());
 
     }
-    @Cacheable(value = "splits", key = "#userId + ':' + #categoryId")
-    private List<TransactionSplitDto> getCachedSplitByCategory(Long userId, Long categoryId){
+
+    private List<TransactionSplitDto> getCachedSplitByCategory( Long categoryId){
         var splits = splitRepository.findAllByCategory_Id(categoryId);
         return splits.stream()
                 .map(transactionSplitMapper::toDto)
