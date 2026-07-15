@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 8-create-transaction-split-table
+      author: zhulidovdev
+      changes:
+        - createTable:
+            tableName: transaction_split
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    autoIncrement: true
+              - column:
+                  name: transaction_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: DECIMAL(19,4)
+                  constraints:
+                    nullable: false

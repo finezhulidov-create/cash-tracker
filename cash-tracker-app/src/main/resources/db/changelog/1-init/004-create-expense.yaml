@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: 4-create-expense-table
+      author : zhulidovdev
+      changes :
+        - createTable:
+            tableName: expenses
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  generationType: ALWAYS
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+
+              - column:
+                  name: expense
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: amount
+                  type: DECIMAL(19,4)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: date_time
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+
+
+
+
+

@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/1-init/001-create-users.yaml
+  - include:
+      file: db/changelog/1-init/002-create-categories.yaml
+  - include:
+      file: db/changelog/1-init/003-add-foreignkey-users-categories.yaml
+  - include:
+      file: db/changelog/1-init/004-create-expense.yaml
+  - include:
+      file: db/changelog/1-init/005-add-foreignkey-category-expenses.yaml
+  - include:
+      file: db/changelog/1-init/006-create-transaction-table.yaml
+  - include:
+      file: db/changelog/1-init/007-add-fk-transaction-user.yaml
+  - include:
+      file: db/changelog/1-init/008-create-transaction-split-table.yaml
+  - include:
+      file: db/changelog/1-init/009-add-fk-split.yaml
