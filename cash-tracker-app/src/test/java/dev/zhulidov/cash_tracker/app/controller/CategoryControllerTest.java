@@ -243,8 +243,10 @@ class CategoryControllerTest {
     }
 
     @Test
-    void getCategoriesByUser_whenEmpty_returns200WithEmptyList() throws Exception {
-        when(categoryService.getCategoriesByUserId(OWNER_ID)).thenReturn(List.of());
+    void getCategoriesByUser_whenEmpty_returns200WithEmptyPage() throws Exception {
+        var pageable = PageRequest.of(0, 10);
+        var emptyDtoPage = new PageImpl<CategoryDto>(List.of(), pageable, 0);
+        when(categoryService.getCategoriesByUserId(OWNER_ID,pageable)).thenReturn(emptyDtoPage);
 
         mockMvc.perform(get("/categories/mine")
                         .with(authentication(authToken())))
