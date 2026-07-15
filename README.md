@@ -1,101 +1,126 @@
-# 💰 Cash Tracker
+# Cash Tracker
 
-Веб-приложение для учёта личных расходов с JWT-аутентификацией, built on Spring Boot 3.x.
+Backend pet-проект: трекер личных финансов с поддержкой разбивки одной транзакции на несколько категорий (split-транзакции), написанный на Spring Boot. Цель проекта — не просто CRUD, а демонстрация production-ready практик: multi-module архитектура, security, кэширование, миграции БД, тестирование.
 
-## 📋 Описание
+## Стек
 
-Cash Tracker — это REST API бэкенд с простым HTML/JS фронтендом.  
-Позволяет регистрироваться, входить в систему и вести учёт расходов по категориям.
+- **Java 17**, **Spring Boot 3.5**
+- **Spring Security** — JWT-аутентификация
+- **Spring Data JPA / Hibernate** — работа с БД
+- **PostgreSQL** — основное хранилище
+- **Liquibase** — миграции схемы БД
+- **Redis** — кэширование часто читаемых данных
+- **Docker / Docker Compose** — окружение для разработки
+- **Maven (multi-module)** — сборка
+- **MapStruct** — маппинг Entity ↔ DTO
+- **JUnit 5 + Mockito** — тестирование
+- **springdoc-openapi (Swagger)** — документация API
 
-## 🛠 Стек технологий
+## Архитектура
 
-| Технология | Версия |
-|---|---|
-| Java | 17 |
-| Spring Boot | 3.x |
-| Spring Security | 6.x |
-| Spring Data JPA | 3.x |
-| Hibernate | 6.x |
-| PostgreSQL | 15+ |
-| Maven | 3.x |
-| JWT (jjwt) | 0.11+ |
-| BCrypt | — |
-| HTML / JS | — |
+Проект разбит на три Maven-модуля с явными границами зависимостей:
 
-## ⚡ Функциональность
+```
+cash-tracker/
+├── cash-tracker-common/         # security-примитивы, обработка ошибок, JWT
+├── cash-tracker-transactions/   # домен: Category, Transaction, TransactionSplit
+└── cash-tracker-app/            # main-класс, security-конфигурация, пользователи
+```
 
-- 🔐 Регистрация и вход пользователя (JWT + BCrypt)
-- 📂 CRUD категорий расходов
-- 💸 CRUD расходов с привязкой к категории
-- 🛡 Глобальная обработка ошибок (`@RestControllerAdvice`)
-- 🌐 Простой фронтенд на HTML/JS
+`cash-tracker-app` зависит от `cash-tracker-transactions` и `cash-tracker-common`, обратных зависимостей нет — это предотвращает циклические ссылки между доменами на уровне компиляции.
 
-## 🗂 Структура проекта
-src/
-├── main/
-│   ├── java/
-│   │   └── dev/zhulidov/cashtracker/
-│   │       ├── config/        # Spring Security, JWT конфигурация
-│   │       ├── controller/    # REST контроллеры
-│   │       ├── dto/           # Java Records (DTO)
-│   │       ├── entity/        # JPA сущности (User, Category, Expense)
-│   │       ├── exception/     # Глобальная обработка ошибок
-│   │       ├── filter/        # JWT фильтр
-│   │       ├── repository/    # Spring Data репозитории
-│   │       └── service/       # Бизнес-логика
-│   └── resources/
-│       ├── application.properties
-│       └── static/            # HTML/JS фронтенд
-## 🚀 Запуск локально
+## Что сделано
 
-### Требования
-- Java 17+
-- PostgreSQL 15+
-- Maven 3.x
+### Epic 1 — Транзакции со сплитами ✅
 
-### Шаги
+- Разбивка одной транзакции на несколько категорий (например, один чек из супермаркета → "Еда" + "Быт")
+- Полный CRUD (create/read/update/delete) с валидацией: сумма всех сплитов обязана совпадать с суммой транзакции
+- Гибкая фильтрация транзакций через Spring Data Specification API — по категории, диапазону суммы, диапазону дат, в любой комбинации
+- Пагинация везде, где отдаются списки
 
-**1. Клонируй репозиторий**
+### Безопасность ✅
+
+- JWT-аутентификация, `id` пользователя всегда берётся из токена, никогда из тела запроса или URL
+- Единая точка проверки владения ресурсом (`SecurityUtils.assertOwner`) — защита от IDOR на каждом эндпоинте, включая вложенные ссылки (например, категория внутри сплита)
+- 404 вместо 403 на чужих ресурсах — не подтверждаем факт их существования
+- Единый формат ошибок (`ErrorResponse`) с машиночитаемым `errorCode`
+
+### Кэширование ✅
+
+- Redis-кэш для списка категорий и сплитов по категории
+- Точечная инвалидация при изменении данных (а не сброс всего кэша)
+- TTL 15 минут как страховка от пропущенной инвалидации
+
+### Инфраструктура ✅
+
+- Liquibase-миграции — единственный источник истины для схемы БД (`ddl-auto=validate`)
+- Docker Compose: PostgreSQL + Redis + приложение, с health checks и правильным порядком запуска
+- Профили `dev` / `test` / `prod` — разделение конфигурации и секретов
+
+### Тесты ✅
+
+- Unit-тесты сервисного слоя (Mockito) — включая граничные случаи пагинации и кэша
+- `@WebMvcTest` на контроллерах — валидация, коды ответов, security-сценарии
+
+### Документация API ✅
+
+- Swagger UI (`/swagger-ui.html`) — все эндпоинты аннотированы
+
+## Что предстоит сделать
+
+### Epic 2 — Бюджеты по периодам (в работе)
+
+- Лимит трат на категорию за месяц
+- Расчёт "потрачено / осталось" на основе реальных транзакций
+- Тесты, включая интеграционные (Testcontainers)
+
+### Дальше по плану
+
+- **Epic 3** — уведомления о превышении бюджета через Kafka (событие при создании транзакции → консьюмер проверяет лимит)
+- **Epic 4** — группы и разделение расходов между несколькими пользователями (по аналогии со Splitwise), включая алгоритм упрощения взаимных долгов
+- Refresh-токены и роли
+- CI (GitHub Actions)
+
+## Как запустить
+
+### Через Docker Compose (рекомендуется)
+
+Поднимает PostgreSQL, Redis и само приложение одной командой:
+
 ```bash
-git clone https://github.com/finezhulidov-create/cash-tracker.git
-cd cash-tracker
+docker compose up --build
 ```
 
-**2. Создай базу данных**
-```sql
-CREATE DATABASE cash_tracker;
-```
+Приложение будет доступно на `http://localhost:8080`, Swagger UI — на `http://localhost:8080/swagger-ui.html`.
 
-**3. Настрой `application.properties`**
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/cash_tracker
-spring.datasource.username=твой_юзер
-spring.datasource.password=твой_пароль
-jwt.secret=твой_секретный_ключ
-```
+### Локально (для разработки)
 
-**4. Запусти приложение**
+1. Подними PostgreSQL и Redis вручную или через `docker compose up db redis`.
+2. Настрой переменные окружения / профиль `dev` (`src/main/resources/application-dev.properties`) под свою локальную БД.
+3. Собери и запусти:
+
 ```bash
-mvn spring-boot:run
+mvn clean install
+mvn spring-boot:run -pl cash-tracker-app -Dspring-boot.run.profiles=dev
 ```
 
-**5. Открой в браузере**
-http://localhost:8080
-## 🔗 API Endpoints
+Либо запусти `CashTrackerApplication` из IDE с активным профилем `dev` (`-Dspring.profiles.active=dev`).
 
-| Метод | URL | Описание |
-|---|---|---|
-| POST | `/api/auth/register` | Регистрация |
-| POST | `/api/auth/login` | Вход, получение JWT |
-| GET | `/api/categories` | Список категорий |
-| POST | `/api/categories` | Создать категорию |
-| GET | `/api/expenses` | Список расходов |
-| POST | `/api/expenses` | Добавить расход |
-| PUT | `/api/expenses/{id}` | Обновить расход |
-| DELETE | `/api/expenses/{id}` | Удалить расход |
+### Тесты
 
-## 👤 Автор
+```bash
+mvn test
+```
 
-**Zhulidov Aleksandr**  
-[![GitHub](https://img.shields.io/badge/GitHub-finezhulidov--create-black)](https://github.com/finezhulidov-create)  
-[![Telegram](https://img.shields.io/badge/Telegram-@daiwa1998-blue)](https://t.me/daiwa1998)
+## API
+
+Основные группы эндпоинтов:
+
+- `POST /auth/register`, `POST /auth/login` — регистрация и аутентификация
+- `GET/POST/PUT/DELETE /categories` — категории
+- `GET /categories/{id}/splits` — сплиты по конкретной категории
+- `GET/POST/PUT/DELETE /transactions` — транзакции со сплитами
+- `GET /transactions/filter` — гибкая фильтрация (категория, сумма, даты)
+- `GET /transactions/total` — сумма транзакций за период
+
+Полная спецификация — в Swagger UI после запуска приложения.
