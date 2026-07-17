@@ -30,7 +30,7 @@ import java.time.LocalDateTime;
 @Validated
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/transactions")
+@RequestMapping("/v1/transactions")
 public class TransactionController {
     private final TransactionService transactionService;
 

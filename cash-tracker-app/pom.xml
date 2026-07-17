@@ -16,6 +16,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
             <groupId>dev.zhulidov</groupId>
             <artifactId>cash-tracker-common</artifactId>
         </dependency>

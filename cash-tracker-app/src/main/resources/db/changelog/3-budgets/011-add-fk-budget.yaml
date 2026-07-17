@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 11-add-fk-budget-user
+      author: zhulidovdev
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: budget
+            baseColumnNames: user_id
+            constraintName: fk_budget_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 12-add-fk-budget-category
+      author: zhulidovdev
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: budget
+            baseColumnNames: category_id
+            constraintName: fk_budget_category
+            referencedTableName: categories
+            referencedColumnNames: id
+            onDelete: CASCADE

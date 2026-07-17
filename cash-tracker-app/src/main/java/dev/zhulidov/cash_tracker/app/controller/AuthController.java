@@ -28,7 +28,7 @@ public class AuthController {
 
     private final UserService service;
 
-    @PostMapping("/login")
+    @PostMapping("/v1/login")
     public ResponseEntity<String> login(@RequestBody @Valid LoginRequest request) {
      var auth =   authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(),request.password())
@@ -42,6 +42,8 @@ public class AuthController {
 
         return ResponseEntity.ok(service.createUser(request));
     }
+
+
 
 }
 

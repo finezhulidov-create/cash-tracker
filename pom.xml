@@ -25,6 +25,7 @@
         <module>cash-tracker-common</module>
         <module>cash-tracker-transactions</module>
         <module>cash-tracker-app</module>
+        <module>cash-tracker-notifications</module>
     </modules>
 
     <dependencyManagement>
