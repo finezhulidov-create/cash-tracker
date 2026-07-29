@@ -67,7 +67,7 @@ class TransactionServiceTest {
     }
 
     private CategoryDto categoryDtoRef(Long categoryId) {
-        return new CategoryDto(categoryId, "Food", "owner");
+        return new CategoryDto(categoryId, "Food", 1L);
     }
 
     private TransactionSplitDto splitDto(BigDecimal amount, Long categoryId) {

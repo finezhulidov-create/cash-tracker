@@ -59,7 +59,7 @@ class TransactionControllerTest {
     // Вложенные @NotNull categoryDto/transactionDto в TransactionSplitDto требуют полностью
     // заполненных объектов для прохождения валидации запроса, даже если сервис их не использует.
     private CategoryDto dummyCategoryDto() {
-        return new CategoryDto(CATEGORY_ID, "Food", "owner");
+        return new CategoryDto(CATEGORY_ID, "Food", 1L);
     }
 
     private TransactionDto dummyTransactionDto() {
