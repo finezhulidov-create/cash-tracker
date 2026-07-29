@@ -89,12 +89,7 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
-        <dependency>
-            <groupId>dev.zhulidov</groupId>
-            <artifactId>cash-tracker-app</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
+        
     </dependencies>
     <build>
         <plugins>
