@@ -28,7 +28,7 @@ public class AuthController {
 
     private final UserService service;
 
-    @PostMapping("/v1/login")
+    @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody @Valid LoginRequest request) {
      var auth =   authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(),request.password())
