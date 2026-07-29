@@ -10,9 +10,11 @@ public record BudgetCreateRequest(
         @NotNull
         @Positive
         BigDecimal amount,
-        LocalDate period,
         @NotNull
-        CategoryDto category
+        LocalDate period,
+        @Positive
+        @NotNull
+        Long categoryId
 
 ) {
 }

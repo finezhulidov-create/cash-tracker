@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/3-budgets/010-create-budget-table.yaml
   - include:
       file: db/changelog/3-budgets/011-add-fk-budget.yaml
+  - include:
+      file: db/changelog/3-budgets/012-add-unique-budget.yaml

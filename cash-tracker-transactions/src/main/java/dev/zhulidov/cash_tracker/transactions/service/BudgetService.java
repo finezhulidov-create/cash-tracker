@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 
@@ -29,31 +30,38 @@ public class BudgetService {
 
     @Transactional
     public BudgetDto createBudget(BudgetCreateRequest request, Long userId){
-        var category = categoryRepository.findById(request.category().id())
+        var category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(()-> new ResourceNotFoundException("Category Not Found"));
         SecurityUtils.assertOwner(category.getUserId(),userId);
         var budget = Budget.builder()
                 .userId(userId)
                 .limitAmount(request.amount())
-                .period(request.period())
+                .period(request.period().withDayOfMonth(1))
                 .category(category)
                 .build();
         repository.saveAndFlush(budget);
         return budgetMapper.toDto(budget);
     }
     @Transactional
-    public BudgetDto updateBudget(BudgetUpdateRequest request, Long userID){
-        var budget = repository.getBudgetByCategory_Id(request.categoryDto().id())
+    public BudgetDto updateBudget(BudgetUpdateRequest request, Long userID, Long budgetId){
+        var budget = repository.findById(budgetId)
                 .orElseThrow(()-> new ResourceNotFoundException("Budget not found"));
         SecurityUtils.assertOwner(budget.getUserId(), userID);
+
+        if (!request.period().equals(budget.getPeriod())){
+            LocalDate period = request.period().withDayOfMonth(1);
+            budget.setPeriod(period);
+        }
+
         budgetMapper.updateEntityFromDto(request,budget);
        var saved = repository.saveAndFlush(budget);
         return budgetMapper.toDto(saved);
 
     }
 
-    public BigDecimal spentMoneyForCategory(Long id, Long userId){
-        var budget = repository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Budget not found"));
+    public BigDecimal spentMoneyForCategory(Long budgetId, Long userId){
+        var budget = repository.findById(budgetId).orElseThrow(()-> new ResourceNotFoundException("Budget not found"));
+        SecurityUtils.assertOwner(budget.getUserId(), userId);
         LocalDateTime from = budget.getPeriod().atStartOfDay();
         LocalDateTime to = budget.getPeriod().plusMonths(1).atStartOfDay();
         return splitRepository.sumAmountByCategoryAndUserAndDateRange(
