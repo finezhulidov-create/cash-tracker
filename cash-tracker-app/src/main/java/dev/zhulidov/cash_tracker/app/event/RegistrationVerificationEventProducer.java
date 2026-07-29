@@ -1,10 +1,10 @@
 package dev.zhulidov.cash_tracker.app.event;
 
-import dev.zhulidov.cash_tracker.app.dto.RegistrationVerificationDto;
+import dev.zhulidov.cash_tracker.common.dto.RegistrationVerificationDto;
+import dev.zhulidov.cash_tracker.common.dto.SendingOperations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @Component
 @RequiredArgsConstructor

@@ -24,7 +24,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    
+
 
     private final UserService service;
 

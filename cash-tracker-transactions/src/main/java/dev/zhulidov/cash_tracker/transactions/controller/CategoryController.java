@@ -15,6 +15,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -109,7 +110,7 @@ public class CategoryController {
     })
     @GetMapping("/mine")
     public PagedModel<CategoryDto> getCategoriesByUser(@AuthenticationPrincipal UserPrincipal principal,
-                                                       Pageable pageable){
+                                               Pageable pageable){
             Page<CategoryDto> page = service.getCategoriesByUserId(principal.getId(), pageable);
             return new PagedModel<>(page);
     }

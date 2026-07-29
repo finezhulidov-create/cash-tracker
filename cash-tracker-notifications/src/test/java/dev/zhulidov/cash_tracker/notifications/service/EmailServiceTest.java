@@ -2,6 +2,10 @@ package dev.zhulidov.cash_tracker.notifications.service;
 
 import dev.zhulidov.cash_tracker.common.dto.SendingOperations;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mail.SimpleMailMessage;
@@ -10,14 +14,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class EmailServiceTest {
 
-    @MockitoBean
-    private JavaMailSender mailSender;
+    @Mock
+     JavaMailSender mailSender;
 
-    @Autowired
-    NotificationService service;
+    @InjectMocks
+    EmailService service;
 
     @Test
     void sendCreateEmail_shouldCallMailSender(){

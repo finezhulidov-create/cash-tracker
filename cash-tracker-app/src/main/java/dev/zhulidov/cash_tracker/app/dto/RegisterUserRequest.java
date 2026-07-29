@@ -12,9 +12,7 @@ public record RegisterUserRequest(
         @Size(min = 2, max = 20)
         @NotBlank
         String username,
-        @Pattern(
-                regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{10,}$",
-                message = "Password must be at least 10 characters, contain uppercase, lowercase, digit and special character"
-        )
+        @NotBlank(
+                 message = "Password must be at least 10 characters, contain uppercase, lowercase, digit and special character")
         String password) {
 }

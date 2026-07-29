@@ -60,7 +60,7 @@ class CategoryControllerTest {
         return new UsernamePasswordAuthenticationToken(principal, null, List.of());
     }
 
-    // ==================== POST /categories ====================
+    // ==================== POST /v1/categories ====================
 
     @Test
     void createCategory_whenValidAndAuthenticated_returns200() throws Exception {
@@ -68,7 +68,7 @@ class CategoryControllerTest {
         var responseDto = new CategoryDto(CATEGORY_ID, "Food", null);
         when(categoryService.createCategory(eq(request), eq(OWNER_ID))).thenReturn(responseDto);
 
-        mockMvc.perform(post("/categories")
+        mockMvc.perform(post("/v1/categories")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -82,7 +82,7 @@ class CategoryControllerTest {
     void createCategory_whenBlankName_returns400() throws Exception {
         var request = new CategoryCreateRequestDto("");
 
-        mockMvc.perform(post("/categories")
+        mockMvc.perform(post("/v1/categories")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -94,7 +94,7 @@ class CategoryControllerTest {
     void createCategory_whenNameTooLong_returns400() throws Exception {
         var request = new CategoryCreateRequestDto("a".repeat(51));
 
-        mockMvc.perform(post("/categories")
+        mockMvc.perform(post("/v1/categories")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -106,21 +106,21 @@ class CategoryControllerTest {
     void createCategory_whenUnauthenticated_returns401() throws Exception {
         var request = new CategoryCreateRequestDto("Food");
 
-        mockMvc.perform(post("/categories")
+        mockMvc.perform(post("/v1/categories")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
 
-    // ==================== GET /categories/{id} ====================
+    // ==================== GET /v1/categories/{id} ====================
 
     @Test
     void getCategory_whenExists_returns200() throws Exception {
         var responseDto = new CategoryDto(CATEGORY_ID, "Food", null);
         when(categoryService.getCategoryById(CATEGORY_ID, OWNER_ID)).thenReturn(responseDto);
 
-        mockMvc.perform(get("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(get("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categoryName").value("Food"));
@@ -128,7 +128,7 @@ class CategoryControllerTest {
 
     @Test
     void getCategory_whenIdNotPositive_returns400() throws Exception {
-        mockMvc.perform(get("/categories/{categoryId}", -5)
+        mockMvc.perform(get("/v1/categories/{categoryId}", -5)
                         .with(authentication(authToken())))
                 .andExpect(status().isBadRequest());
     }
@@ -138,7 +138,7 @@ class CategoryControllerTest {
         when(categoryService.getCategoryById(CATEGORY_ID, OWNER_ID))
                 .thenThrow(new ResourceNotFoundException("Category not found"));
 
-        mockMvc.perform(get("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(get("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isNotFound());
     }
@@ -148,16 +148,16 @@ class CategoryControllerTest {
         when(categoryService.getCategoryById(CATEGORY_ID, OWNER_ID))
                 .thenThrow(new InaccessibleResourceException("Resource not Found"));
 
-        mockMvc.perform(get("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(get("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isNotFound());
     }
 
-    // ==================== DELETE /categories/{id} ====================
+    // ==================== DELETE /v1/categories/{id} ====================
 
     @Test
     void deleteCategory_whenExists_returns200() throws Exception {
-        mockMvc.perform(delete("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(delete("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken()))
                         .with(csrf()))
                 .andExpect(status().isOk());
@@ -165,7 +165,7 @@ class CategoryControllerTest {
 
     @Test
     void deleteCategory_whenIdNotPositive_returns400() throws Exception {
-        mockMvc.perform(delete("/categories/{categoryId}", 0)
+        mockMvc.perform(delete("/v1/categories/{categoryId}", 0)
                         .with(authentication(authToken()))
                         .with(csrf()))
                 .andExpect(status().isBadRequest());
@@ -176,13 +176,13 @@ class CategoryControllerTest {
         org.mockito.Mockito.doThrow(new ResourceNotFoundException("Category not found"))
                 .when(categoryService).deleteCategoryById(CATEGORY_ID, OWNER_ID);
 
-        mockMvc.perform(delete("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(delete("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken()))
                         .with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
-    // ==================== PUT /categories/{id} ====================
+    // ==================== PUT /v1/categories/{id} ====================
 
     @Test
     void updateCategory_whenValid_returns200() throws Exception {
@@ -190,7 +190,7 @@ class CategoryControllerTest {
         var responseDto = new CategoryDto(CATEGORY_ID, "Groceries", null);
         when(categoryService.updateCategory(CATEGORY_ID, "Groceries", OWNER_ID)).thenReturn(responseDto);
 
-        mockMvc.perform(put("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(put("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -203,7 +203,7 @@ class CategoryControllerTest {
     void updateCategory_whenBlankName_returns400() throws Exception {
         var request = new CategoryUpdateRequestDto("");
 
-        mockMvc.perform(put("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(put("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -217,7 +217,7 @@ class CategoryControllerTest {
         when(categoryService.updateCategory(CATEGORY_ID, "Groceries", OWNER_ID))
                 .thenThrow(new InaccessibleResourceException("Resource not Found"));
 
-        mockMvc.perform(put("/categories/{categoryId}", CATEGORY_ID)
+        mockMvc.perform(put("/v1/categories/{categoryId}", CATEGORY_ID)
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -225,7 +225,7 @@ class CategoryControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ==================== GET /categories/mine ====================
+    // ==================== GET /v1/categories/mine ====================
 
     @Test
     void getCategoriesByUser_returns200WithPage() throws Exception {
@@ -235,7 +235,7 @@ class CategoryControllerTest {
         var pageDto = new PageImpl<CategoryDto>(List.of(dto1, dto2),PageRequest.of(0,2),2);
         when(categoryService.getCategoriesByUserId(eq(OWNER_ID), any())).thenReturn(pageDto);
 
-        mockMvc.perform(get("/categories/mine")
+        mockMvc.perform(get("/v1/categories/mine")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2));
@@ -247,13 +247,13 @@ class CategoryControllerTest {
         var emptyDtoPage = new PageImpl<CategoryDto>(List.of(), PageRequest.of(0, 10), 0);
         when(categoryService.getCategoriesByUserId(eq(OWNER_ID),any())).thenReturn(emptyDtoPage);
 
-        mockMvc.perform(get("/categories/mine")
+        mockMvc.perform(get("/v1/categories/mine")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(0));
     }
 
-    // ==================== GET /categories/{id}/splits ====================
+    // ==================== GET /v1/categories/{id}/splits ====================
 
     @Test
     void getSplits_whenExists_returns200() throws Exception {
@@ -261,7 +261,7 @@ class CategoryControllerTest {
         var page = new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1);
         when(categoryService.getSplitsByCategory(eq(OWNER_ID), eq(CATEGORY_ID), any())).thenReturn(page);
 
-        mockMvc.perform(get("/categories/{categoryId}/splits", CATEGORY_ID)
+        mockMvc.perform(get("/v1/categories/{categoryId}/splits", CATEGORY_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
@@ -269,7 +269,7 @@ class CategoryControllerTest {
 
     @Test
     void getSplits_whenIdNotPositive_returns400() throws Exception {
-        mockMvc.perform(get("/categories/{categoryId}/splits", -1)
+        mockMvc.perform(get("/v1/categories/{categoryId}/splits", -1)
                         .with(authentication(authToken())))
                 .andExpect(status().isBadRequest());
     }
@@ -279,7 +279,7 @@ class CategoryControllerTest {
         when(categoryService.getSplitsByCategory(eq(OWNER_ID), eq(CATEGORY_ID), any()))
                 .thenThrow(new ResourceNotFoundException("Category not found"));
 
-        mockMvc.perform(get("/categories/{categoryId}/splits", CATEGORY_ID)
+        mockMvc.perform(get("/v1/categories/{categoryId}/splits", CATEGORY_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isNotFound());
     }

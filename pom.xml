@@ -55,6 +55,11 @@
                 <artifactId>cash-tracker-transactions</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>dev.zhulidov</groupId>
+                <artifactId>cash-tracker-notifications</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

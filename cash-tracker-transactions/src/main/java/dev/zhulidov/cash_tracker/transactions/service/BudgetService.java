@@ -9,10 +9,13 @@ import dev.zhulidov.cash_tracker.transactions.model.Budget;
 import dev.zhulidov.cash_tracker.transactions.model.BudgetMapper;
 import dev.zhulidov.cash_tracker.transactions.repository.BudgetRepository;
 import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
+import dev.zhulidov.cash_tracker.transactions.repository.TransactionSplitRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 
 @Service
@@ -21,6 +24,7 @@ public class BudgetService {
 
     private final BudgetRepository repository;
     private final CategoryRepository categoryRepository;
+    private final TransactionSplitRepository splitRepository;
     private final BudgetMapper budgetMapper;
 
     @Transactional
@@ -48,5 +52,12 @@ public class BudgetService {
 
     }
 
+    public BigDecimal spentMoneyForCategory(Long id, Long userId){
+        var budget = repository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Budget not found"));
+        LocalDateTime from = budget.getPeriod().atStartOfDay();
+        LocalDateTime to = budget.getPeriod().plusMonths(1).atStartOfDay();
+        return splitRepository.sumAmountByCategoryAndUserAndDateRange(
+                budget.getCategory().getId(), userId, from, to);
+    }
 
 }

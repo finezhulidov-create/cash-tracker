@@ -1,6 +1,5 @@
-package dev.zhulidov.cash_tracker.notifications.dto;
+package dev.zhulidov.cash_tracker.common.dto;
 
-import dev.zhulidov.cash_tracker.app.event.SendingOperations;
 import jakarta.validation.constraints.NotNull;
 
 public record RegistrationVerificationDto(

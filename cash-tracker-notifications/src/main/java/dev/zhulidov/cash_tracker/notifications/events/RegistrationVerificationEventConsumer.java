@@ -1,6 +1,6 @@
 package dev.zhulidov.cash_tracker.notifications.events;
 
-import dev.zhulidov.cash_tracker.notifications.dto.RegistrationVerificationDto;
+import dev.zhulidov.cash_tracker.common.dto.RegistrationVerificationDto;
 import dev.zhulidov.cash_tracker.notifications.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;

@@ -70,7 +70,7 @@ class TransactionControllerTest {
         return new TransactionSplitDto(amount, dummyCategoryDto(), dummyTransactionDto());
     }
 
-    // ==================== POST /transactions/create ====================
+    // ==================== POST /v1/transactions/create ====================
 
     @Test
     void createTransaction_whenValid_returns200() throws Exception {
@@ -82,7 +82,7 @@ class TransactionControllerTest {
         var responseDto = new TransactionDto(TRANSACTION_ID, OWNER_ID, request.amount(), request.description(), LocalDateTime.now());
         when(transactionService.createTransaction(eq(request), eq(OWNER_ID))).thenReturn(responseDto);
 
-        mockMvc.perform(post("/transactions/create")
+        mockMvc.perform(post("/v1/transactions/create")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -97,7 +97,7 @@ class TransactionControllerTest {
         var request = new TransactionCreateRequest(
                 List.of(splitDto(new BigDecimal("2500.00"))), null, new BigDecimal("2500.00"));
 
-        mockMvc.perform(post("/transactions/create")
+        mockMvc.perform(post("/v1/transactions/create")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -112,7 +112,7 @@ class TransactionControllerTest {
         when(transactionService.createTransaction(eq(request), eq(OWNER_ID)))
                 .thenThrow(new TransactionSplitMismatchException("Split amount must be compare to transaction amount"));
 
-        mockMvc.perform(post("/transactions/create")
+        mockMvc.perform(post("/v1/transactions/create")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -128,7 +128,7 @@ class TransactionControllerTest {
         when(transactionService.createTransaction(eq(request), eq(OWNER_ID)))
                 .thenThrow(new ResourceNotFoundException("Category not found"));
 
-        mockMvc.perform(post("/transactions/create")
+        mockMvc.perform(post("/v1/transactions/create")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -141,18 +141,18 @@ class TransactionControllerTest {
         var request = new TransactionCreateRequest(
                 List.of(splitDto(new BigDecimal("2500.00"))), "Supermarket", new BigDecimal("2500.00"));
 
-        mockMvc.perform(post("/transactions/create")
+        mockMvc.perform(post("/v1/transactions/create")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
 
-    // ==================== DELETE /transactions/{id} ====================
+    // ==================== DELETE /v1/transactions/{id} ====================
 
     @Test
     void deleteTransaction_whenExists_returns200() throws Exception {
-        mockMvc.perform(delete("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(delete("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken()))
                         .with(csrf()))
                 .andExpect(status().isOk());
@@ -160,7 +160,7 @@ class TransactionControllerTest {
 
     @Test
     void deleteTransaction_whenIdNotPositive_returns400() throws Exception {
-        mockMvc.perform(delete("/transactions/{transId}", -1)
+        mockMvc.perform(delete("/v1/transactions/{transId}", -1)
                         .with(authentication(authToken()))
                         .with(csrf()))
                 .andExpect(status().isBadRequest());
@@ -171,7 +171,7 @@ class TransactionControllerTest {
         org.mockito.Mockito.doThrow(new ResourceNotFoundException("Transaction not found"))
                 .when(transactionService).deleteTransactionById(TRANSACTION_ID, OWNER_ID);
 
-        mockMvc.perform(delete("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(delete("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken()))
                         .with(csrf()))
                 .andExpect(status().isNotFound());
@@ -182,13 +182,13 @@ class TransactionControllerTest {
         org.mockito.Mockito.doThrow(new InaccessibleResourceException("Resource not Found"))
                 .when(transactionService).deleteTransactionById(TRANSACTION_ID, OWNER_ID);
 
-        mockMvc.perform(delete("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(delete("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken()))
                         .with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
-    // ==================== PUT /transactions/{id} ====================
+    // ==================== PUT /v1/transactions/{id} ====================
 
     @Test
     void updateTransaction_whenValid_returns200() throws Exception {
@@ -197,7 +197,7 @@ class TransactionControllerTest {
         var responseDto = new TransactionDto(TRANSACTION_ID, OWNER_ID, request.amount(), request.description(), request.dateTime());
         when(transactionService.updateTransaction(eq(request), eq(TRANSACTION_ID), eq(OWNER_ID))).thenReturn(responseDto);
 
-        mockMvc.perform(put("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(put("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -211,7 +211,7 @@ class TransactionControllerTest {
         var request = new TransactionUpdateRequest(
                 List.of(splitDto(new BigDecimal("2500.00"))), "Updated", new BigDecimal("2500.00"), LocalDateTime.now());
 
-        mockMvc.perform(put("/transactions/{transId}", 0)
+        mockMvc.perform(put("/v1/transactions/{transId}", 0)
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -224,7 +224,7 @@ class TransactionControllerTest {
         var request = new TransactionUpdateRequest(
                 List.of(splitDto(new BigDecimal("2500.00"))), "Updated", null, LocalDateTime.now());
 
-        mockMvc.perform(put("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(put("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -239,7 +239,7 @@ class TransactionControllerTest {
         when(transactionService.updateTransaction(eq(request), eq(TRANSACTION_ID), eq(OWNER_ID)))
                 .thenThrow(new TransactionSplitMismatchException("mismatch"));
 
-        mockMvc.perform(put("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(put("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -247,14 +247,14 @@ class TransactionControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ==================== GET /transactions/{id} ====================
+    // ==================== GET /v1/transactions/{id} ====================
 
     @Test
     void getTransaction_whenExists_returns200() throws Exception {
         var responseDto = new TransactionDto(TRANSACTION_ID, OWNER_ID, new BigDecimal("2500.00"), "Supermarket", LocalDateTime.now());
         when(transactionService.getById(TRANSACTION_ID, OWNER_ID)).thenReturn(responseDto);
 
-        mockMvc.perform(get("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(get("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(TRANSACTION_ID));
@@ -262,7 +262,7 @@ class TransactionControllerTest {
 
     @Test
     void getTransaction_whenIdNotPositive_returns400() throws Exception {
-        mockMvc.perform(get("/transactions/{transId}", -5)
+        mockMvc.perform(get("/v1/transactions/{transId}", -5)
                         .with(authentication(authToken())))
                 .andExpect(status().isBadRequest());
     }
@@ -272,7 +272,7 @@ class TransactionControllerTest {
         when(transactionService.getById(TRANSACTION_ID, OWNER_ID))
                 .thenThrow(new ResourceNotFoundException("Transaction not found"));
 
-        mockMvc.perform(get("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(get("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isNotFound());
     }
@@ -282,12 +282,12 @@ class TransactionControllerTest {
         when(transactionService.getById(TRANSACTION_ID, OWNER_ID))
                 .thenThrow(new InaccessibleResourceException("Resource not Found"));
 
-        mockMvc.perform(get("/transactions/{transId}", TRANSACTION_ID)
+        mockMvc.perform(get("/v1/transactions/{transId}", TRANSACTION_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isNotFound());
     }
 
-    // ==================== GET /transactions/all ====================
+    // ==================== GET /v1/transactions/all ====================
 
     @Test
     void getAllTransactions_returns200WithPage() throws Exception {
@@ -295,7 +295,7 @@ class TransactionControllerTest {
         var page = new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1);
         when(transactionService.getAllTransactionsByUser(eq(OWNER_ID), any())).thenReturn(page);
 
-        mockMvc.perform(get("/transactions/all")
+        mockMvc.perform(get("/v1/transactions/all")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
@@ -306,13 +306,13 @@ class TransactionControllerTest {
         var page = new PageImpl<TransactionDto>(List.of(), PageRequest.of(0, 10), 0);
         when(transactionService.getAllTransactionsByUser(eq(OWNER_ID), any())).thenReturn(page);
 
-        mockMvc.perform(get("/transactions/all")
+        mockMvc.perform(get("/v1/transactions/all")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(0));
     }
 
-    // ==================== GET /transactions/total ====================
+    // ==================== GET /v1/transactions/total ====================
 
     @Test
     void getTotalAmountByDateRange_returns200() throws Exception {
@@ -320,7 +320,7 @@ class TransactionControllerTest {
         LocalDateTime to = LocalDateTime.of(2026, 2, 1, 0, 0);
         when(transactionService.getTotalAmountByDateRange(OWNER_ID, from, to)).thenReturn(new BigDecimal("4200.00"));
 
-        mockMvc.perform(get("/transactions/total")
+        mockMvc.perform(get("/v1/transactions/total")
                         .param("from", from.toString())
                         .param("to", to.toString())
                         .with(authentication(authToken())))
@@ -334,7 +334,7 @@ class TransactionControllerTest {
         LocalDateTime to = LocalDateTime.of(2026, 2, 1, 0, 0);
         when(transactionService.getTotalAmountByDateRange(OWNER_ID, from, to)).thenReturn(BigDecimal.ZERO);
 
-        mockMvc.perform(get("/transactions/total")
+        mockMvc.perform(get("/v1/transactions/total")
                         .param("from", from.toString())
                         .param("to", to.toString())
                         .with(authentication(authToken())))
@@ -342,7 +342,7 @@ class TransactionControllerTest {
                 .andExpect(content().string("0"));
     }
 
-    // ==================== GET /transactions/filter ====================
+    // ==================== GET /v1/transactions/filter ====================
 
     @Test
     void getTransactions_withNoFilters_returns200() throws Exception {
@@ -350,7 +350,7 @@ class TransactionControllerTest {
         var page = new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1);
         when(transactionService.getTransactions(eq(OWNER_ID), any(TransactionSearchCriteria.class), any())).thenReturn(page);
 
-        mockMvc.perform(get("/transactions/filter")
+        mockMvc.perform(get("/v1/transactions/filter")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
@@ -361,7 +361,7 @@ class TransactionControllerTest {
         var page = new PageImpl<TransactionDto>(List.of(), PageRequest.of(0, 10), 0);
         when(transactionService.getTransactions(eq(OWNER_ID), any(TransactionSearchCriteria.class), any())).thenReturn(page);
 
-        mockMvc.perform(get("/transactions/filter")
+        mockMvc.perform(get("/v1/transactions/filter")
                         .param("categoryId", String.valueOf(CATEGORY_ID))
                         .param("minAmount", "100")
                         .param("maxAmount", "1000")
@@ -371,7 +371,7 @@ class TransactionControllerTest {
 
     @Test
     void getTransactions_whenUnauthenticated_returns401() throws Exception {
-        mockMvc.perform(get("/transactions/filter"))
+        mockMvc.perform(get("/v1/transactions/filter"))
                 .andExpect(status().isUnauthorized());
     }
 }

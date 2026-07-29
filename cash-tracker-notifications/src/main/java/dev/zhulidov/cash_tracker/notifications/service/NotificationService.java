@@ -1,6 +1,6 @@
 package dev.zhulidov.cash_tracker.notifications.service;
 
-import dev.zhulidov.cash_tracker.app.event.SendingOperations;
+import dev.zhulidov.cash_tracker.common.dto.SendingOperations;
 import jakarta.validation.constraints.NotNull;
 
 public interface NotificationService {
