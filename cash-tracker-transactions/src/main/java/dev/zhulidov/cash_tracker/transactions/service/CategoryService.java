@@ -1,5 +1,6 @@
 package dev.zhulidov.cash_tracker.transactions.service;
 
+import dev.zhulidov.cash_tracker.common.util.PageUtils;
 import dev.zhulidov.cash_tracker.transactions.dto.CategoryCreateRequestDto;
 import dev.zhulidov.cash_tracker.transactions.dto.CategoryDto;
 import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
@@ -12,6 +13,7 @@ import dev.zhulidov.cash_tracker.transactions.repository.TransactionSplitReposit
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -27,8 +29,9 @@ public class CategoryService {
   private final TransactionSplitRepository splitRepository;
   private final CategoryMapper categoryMapper;
   private final TransactionSplitMapper transactionSplitMapper;
+  private final CategoryCacheService cacheService;
 
-    @CacheEvict(value = "category", key = "#userId")
+    @CacheEvict(value = "categories", key = "#userId")
     public CategoryDto createCategory(CategoryCreateRequestDto requestDto, Long userId){
 
         var category = Category.builder()
@@ -45,14 +48,17 @@ public class CategoryService {
         SecurityUtils.assertOwner(category.getUserId(),userId);
         return categoryMapper.toDto(category);
     }
-    @CacheEvict(value = "category", key = "#userId")
+    @Caching(evict = {
+            @CacheEvict(value = "categories", key = "#userId"),
+            @CacheEvict(value = "splits", key = "#userId + ':' + #id")
+    })
     public void deleteCategoryById(Long id, Long userId){
         var category = repository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Category not found"));
         SecurityUtils.assertOwner(category.getUserId(),userId);
         repository.deleteById(id);
 
     }
-    @CacheEvict(value = "category", key = "#userId")
+    @CacheEvict(value = "categories", key = "#userId")
     public CategoryDto updateCategory(Long id, String categoryName, Long userId){
        Category category = repository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Category not found"));
         SecurityUtils.assertOwner(category.getUserId(),userId);
@@ -60,23 +66,15 @@ public class CategoryService {
         var savedCat = repository.save(category);
         return categoryMapper.toDto(savedCat);
     }
-    @Cacheable(value = "categories", key = "#userId")
+
     public Page<CategoryDto> getCategoriesByUserId(Long userId, Pageable pageable){
-      Page<Category> page =  repository.findAllByUserId(userId, pageable);
-      return categoryMapper.toDtoPage(page);
+        return PageUtils.toPage(cacheService.findAllByUser(userId), pageable);
     }
-    @Cacheable(value = "splits", key = "#userId + ':' + #categoryId")
+
     public Page<TransactionSplitDto> getSplitsByCategory(Long userId, Long categoryId, Pageable pageable){
         SecurityUtils.assertOwner(repository.findById(categoryId)
                 .orElseThrow(()-> new ResourceNotFoundException("Category not found")).getUserId(),userId);
-      List<TransactionSplitDto> allSplits = getCachedSplitByCategory(categoryId);
-      int start = (int) pageable.getOffset();
-      int end = Math.min(start + pageable.getPageSize(), allSplits.size());
-      List<TransactionSplitDto> pageContent = start > allSplits.size()
-              ? List.of()
-              : allSplits.subList(start, end);
-
-        return new PageImpl<>(pageContent, pageable, allSplits.size());
+        return PageUtils.toPage(cacheService.findSplitsByCategory(userId, categoryId),pageable);
 
     }
 

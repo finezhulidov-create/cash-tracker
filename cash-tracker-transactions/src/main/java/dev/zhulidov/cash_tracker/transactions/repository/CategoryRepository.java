@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     Page<Category> findAllByUserId(Long id, Pageable pageable);
-
+    List<Category> findAllByUserId(Long userId);
     List<Category> findAllByTransactionSplits_Category_Id(Long id);
 
 }
