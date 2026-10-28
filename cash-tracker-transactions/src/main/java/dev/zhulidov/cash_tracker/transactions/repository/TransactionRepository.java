@@ -22,5 +22,4 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
-    Page<Transaction> findAllByUserIdAndDateTimeBetween(Long userId, LocalDateTime dateTimeStart, LocalDateTime dateTimeEnd, Pageable pageable);
 }

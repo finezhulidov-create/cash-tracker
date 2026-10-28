@@ -23,3 +23,5 @@ databaseChangeLog:
       file: db/changelog/3-budgets/011-add-fk-budget.yaml
   - include:
       file: db/changelog/3-budgets/012-add-unique-budget.yaml
+  - include:
+      file: db/changelog/4-users/013-add-user-balance.yaml

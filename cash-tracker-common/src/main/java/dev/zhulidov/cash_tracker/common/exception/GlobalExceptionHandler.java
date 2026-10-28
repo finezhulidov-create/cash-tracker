@@ -27,6 +27,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ResourceAlreadyExistsException e){
+        ErrorResponse body = ErrorResponse.from(HttpStatus.CONFLICT.value(), e.getMessage(), LocalDateTime.now(),"RESOURCE_ALREADY_EXISTS");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
     @ExceptionHandler(InaccessibleResourceException.class)
     public ResponseEntity<ErrorResponse> handleForbidden(InaccessibleResourceException ex){
         ErrorResponse body = ErrorResponse.from(HttpStatus.NOT_FOUND.value(), ex.getMessage(), LocalDateTime.now(),"ACCESS_DENIED");

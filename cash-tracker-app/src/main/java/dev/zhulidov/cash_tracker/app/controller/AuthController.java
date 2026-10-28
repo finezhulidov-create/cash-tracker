@@ -3,8 +3,8 @@ package dev.zhulidov.cash_tracker.app.controller;
 import dev.zhulidov.cash_tracker.app.dto.LoginRequest;
 import dev.zhulidov.cash_tracker.app.dto.RegisterUserRequest;
 import dev.zhulidov.cash_tracker.app.dto.RegisterUserResponse;
+import dev.zhulidov.cash_tracker.app.dto.TokenResponse;
 import dev.zhulidov.cash_tracker.common.security.UserPrincipal;
-import dev.zhulidov.cash_tracker.app.service.CustomUserDetailsService;
 import dev.zhulidov.cash_tracker.common.service.JwtService;
 import dev.zhulidov.cash_tracker.app.service.UserService;
 import jakarta.validation.Valid;
@@ -29,13 +29,13 @@ public class AuthController {
     private final UserService service;
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody @Valid LoginRequest request) {
-     var auth =   authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(),request.password())
+    public ResponseEntity<TokenResponse> login(@RequestBody @Valid LoginRequest request) {
+        var auth = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
         UserPrincipal user = (UserPrincipal) auth.getPrincipal();
-        return ResponseEntity.ok(jwtService.generateToken(request.email(),user.getId()));
-
+        String token = jwtService.generateToken(request.email(), user.getId());
+        return ResponseEntity.ok(new TokenResponse(token, "Bearer", jwtService.getExpirationSeconds()));
     }
     @PostMapping("/register")
     public ResponseEntity<RegisterUserResponse> createUser(@RequestBody @Valid RegisterUserRequest request){

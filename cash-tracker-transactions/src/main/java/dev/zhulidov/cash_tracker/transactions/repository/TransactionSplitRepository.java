@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface TransactionSplitRepository extends JpaRepository<TransactionSplit, Long> {
-    void deleteAllByTransaction_Id(Long id);
+
     Page<TransactionSplit> findAllByCategory_Id(Long id, Pageable pageable);
     List<TransactionSplit> findAllByCategory_Id(Long id);
     @Query("SELECT COALESCE(SUM(ts.amount), 0) FROM TransactionSplit ts " +

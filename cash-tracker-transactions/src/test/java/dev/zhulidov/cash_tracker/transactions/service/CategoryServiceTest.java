@@ -7,7 +7,6 @@ import dev.zhulidov.cash_tracker.transactions.dto.CategoryDto;
 import dev.zhulidov.cash_tracker.transactions.dto.TransactionSplitDto;
 import dev.zhulidov.cash_tracker.transactions.model.Category;
 import dev.zhulidov.cash_tracker.transactions.model.CategoryMapper;
-import dev.zhulidov.cash_tracker.transactions.model.TransactionSplit;
 import dev.zhulidov.cash_tracker.transactions.model.TransactionSplitMapper;
 import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
 import dev.zhulidov.cash_tracker.transactions.repository.TransactionSplitRepository;
@@ -39,6 +38,8 @@ class CategoryServiceTest {
     private CategoryMapper categoryMapper;
     @Mock
     private TransactionSplitMapper transactionSplitMapper;
+    @Mock
+    private CategoryCacheService cacheService;
 
     @InjectMocks
     private CategoryService categoryService;
@@ -177,31 +178,23 @@ class CategoryServiceTest {
 
     @Test
     void getCategoriesByUserId_whenCategoriesExist_returnsMappedPage() {
-        var cat1 = Category.builder().id(1L).categoryName("Food").userId(OWNER_ID).build();
-        var cat2 = Category.builder().id(2L).categoryName("Transport").userId(OWNER_ID).build();
         var dto1 = new CategoryDto(1L, "Food", null);
         var dto2 = new CategoryDto(2L, "Transport", null);
         var pageable = PageRequest.of(0, 10);
-        var entityPage = new PageImpl<>(List.of(cat1, cat2), pageable, 2);
-        var dtoPage = new PageImpl<>(List.of(dto1, dto2), pageable, 2);
 
-        when(repository.findAllByUserId(OWNER_ID, pageable)).thenReturn(entityPage);
-        when(categoryMapper.toDtoPage(entityPage)).thenReturn(dtoPage);
+        when(cacheService.findAllByUser(OWNER_ID)).thenReturn(List.of(dto1, dto2));
 
         var result = categoryService.getCategoriesByUserId(OWNER_ID, pageable);
 
-        assertEquals(dtoPage, result);
+        assertEquals(List.of(dto1, dto2), result.getContent());
         assertEquals(2, result.getTotalElements());
     }
 
     @Test
     void getCategoriesByUserId_whenNoCategories_returnsEmptyPage() {
         var pageable = PageRequest.of(0, 10);
-        var emptyEntityPage = new PageImpl<Category>(List.of(), pageable, 0);
-        var emptyDtoPage = new PageImpl<CategoryDto>(List.of(), pageable, 0);
 
-        when(repository.findAllByUserId(OWNER_ID, pageable)).thenReturn(emptyEntityPage);
-        when(categoryMapper.toDtoPage(emptyEntityPage)).thenReturn(emptyDtoPage);
+        when(cacheService.findAllByUser(OWNER_ID)).thenReturn(List.of());
 
         var result = categoryService.getCategoriesByUserId(OWNER_ID, pageable);
 
@@ -234,7 +227,7 @@ class CategoryServiceTest {
     @Test
     void getSplitsByCategory_whenNoSplits_returnsEmptyPage() {
         when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory()));
-        when(splitRepository.findAllByCategory_Id(CATEGORY_ID)).thenReturn(List.of());
+        when(cacheService.findSplitsByCategory(OWNER_ID, CATEGORY_ID)).thenReturn(List.of());
 
         var result = categoryService.getSplitsByCategory(OWNER_ID, CATEGORY_ID, PageRequest.of(0, 10));
 
@@ -244,18 +237,12 @@ class CategoryServiceTest {
 
     @Test
     void getSplitsByCategory_whenRequestedPageWithinBounds_returnsCorrectSlice() {
-        var split1 = TransactionSplit.builder().id(1L).amount(new BigDecimal("100")).build();
-        var split2 = TransactionSplit.builder().id(2L).amount(new BigDecimal("200")).build();
-        var split3 = TransactionSplit.builder().id(3L).amount(new BigDecimal("300")).build();
         var dto1 = new TransactionSplitDto(new BigDecimal("100"), null, null);
         var dto2 = new TransactionSplitDto(new BigDecimal("200"), null, null);
         var dto3 = new TransactionSplitDto(new BigDecimal("300"), null, null);
 
         when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory()));
-        when(splitRepository.findAllByCategory_Id(CATEGORY_ID)).thenReturn(List.of(split1, split2, split3));
-        when(transactionSplitMapper.toDto(split1)).thenReturn(dto1);
-        when(transactionSplitMapper.toDto(split2)).thenReturn(dto2);
-        when(transactionSplitMapper.toDto(split3)).thenReturn(dto3);
+        when(cacheService.findSplitsByCategory(OWNER_ID, CATEGORY_ID)).thenReturn(List.of(dto1, dto2, dto3));
 
         // страница 0, размер 2 -> первые два элемента
         var page0 = categoryService.getSplitsByCategory(OWNER_ID, CATEGORY_ID, PageRequest.of(0, 2));
@@ -270,9 +257,9 @@ class CategoryServiceTest {
 
     @Test
     void getSplitsByCategory_whenRequestedPageBeyondBounds_returnsEmptyContentButCorrectTotal() {
-        var split1 = TransactionSplit.builder().id(1L).amount(new BigDecimal("100")).build();
+        var dto1 = new TransactionSplitDto(new BigDecimal("100"), null, null);
         when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory()));
-        when(splitRepository.findAllByCategory_Id(CATEGORY_ID)).thenReturn(List.of(split1));
+        when(cacheService.findSplitsByCategory(OWNER_ID, CATEGORY_ID)).thenReturn(List.of(dto1));
 
         var result = categoryService.getSplitsByCategory(OWNER_ID, CATEGORY_ID, PageRequest.of(5, 10));
 

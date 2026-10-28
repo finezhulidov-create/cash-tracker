@@ -7,7 +7,6 @@ WORKDIR /app
 COPY pom.xml .
 COPY cash-tracker-app/pom.xml cash-tracker-app/pom.xml
 COPY cash-tracker-common/pom.xml cash-tracker-common/pom.xml
-COPY cash-tracker-notifications/pom.xml cash-tracker-notifications/pom.xml
 COPY cash-tracker-transactions/pom.xml cash-tracker-transactions/pom.xml
 
 
@@ -17,7 +16,6 @@ RUN mvn dependency:go-offline -B
 # Теперь копируем реальные исходники всех модулей
 COPY cash-tracker-app/src cash-tracker-app/src
 COPY cash-tracker-common/src cash-tracker-common/src
-COPY cash-tracker-notifications/src cash-tracker-notifications/src
 COPY cash-tracker-transactions/src cash-tracker-transactions/src
 
 

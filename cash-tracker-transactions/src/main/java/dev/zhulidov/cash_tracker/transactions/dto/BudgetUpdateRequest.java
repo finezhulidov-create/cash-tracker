@@ -12,10 +12,6 @@ public record BudgetUpdateRequest(
         BigDecimal limitAmount,
 
         @NotNull
-        LocalDate period,
-
-        @NotNull
-        @Positive
-        Long categoryId
+        LocalDate period
 ) {
 }

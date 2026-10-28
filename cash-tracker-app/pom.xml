@@ -16,20 +16,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency>
-        <dependency>
             <groupId>dev.zhulidov</groupId>
             <artifactId>cash-tracker-common</artifactId>
         </dependency>
         <dependency>
             <groupId>dev.zhulidov</groupId>
             <artifactId>cash-tracker-transactions</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.zhulidov</groupId>
-            <artifactId>cash-tracker-notifications</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -107,6 +99,27 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- Суммарное покрытие common + transactions + app: контроллеры transactions
+                 тестируются из этого модуля, поэтому отчёт по одному модулю занижает цифры. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>report-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*MapperImpl.class</exclude>
+                                <exclude>**/CashTrackerApplication.class</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

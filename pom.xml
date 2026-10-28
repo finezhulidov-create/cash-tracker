@@ -25,7 +25,6 @@
         <module>cash-tracker-common</module>
         <module>cash-tracker-transactions</module>
         <module>cash-tracker-app</module>
-        <module>cash-tracker-notifications</module>
     </modules>
 
     <dependencyManagement>
@@ -55,11 +54,63 @@
                 <artifactId>cash-tracker-transactions</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>dev.zhulidov</groupId>
-                <artifactId>cash-tracker-notifications</artifactId>
-                <version>${project.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- Mockito подключается как -javaagent, а не «на лету» (self-attach): вместе с агентом JaCoCo
+                 self-attach ненадёжен и роняет все Mockito-тесты ("Could not self-attach to current VM").
+                 dependency:properties кладёт путь к jar в свойство ${org.mockito:mockito-core:jar}. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>mockito-agent-path</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- @{argLine} — late replacement: сюда подставляется агент JaCoCo -->
+                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                </configuration>
+            </plugin>
+            <!-- Покрытие тестами. Отчёт по модулю: target/site/jacoco/index.html (после mvn test).
+                 Суммарный отчёт по всем модулям: cash-tracker-app/target/site/jacoco-aggregate/index.html (после mvn verify).
+                 Сгенерированные MapStruct-мапперы и main-класс в отчёт не включаем. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*MapperImpl.class</exclude>
+                                <exclude>**/CashTrackerApplication.class</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

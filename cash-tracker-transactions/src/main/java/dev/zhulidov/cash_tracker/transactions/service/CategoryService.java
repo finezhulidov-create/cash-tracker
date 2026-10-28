@@ -7,15 +7,11 @@ import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
 import dev.zhulidov.cash_tracker.transactions.dto.TransactionSplitDto;
 import dev.zhulidov.cash_tracker.transactions.model.Category;
 import dev.zhulidov.cash_tracker.transactions.model.CategoryMapper;
-import dev.zhulidov.cash_tracker.transactions.model.TransactionSplitMapper;
 import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
-import dev.zhulidov.cash_tracker.transactions.repository.TransactionSplitRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import dev.zhulidov.cash_tracker.common.util.SecurityUtils;
@@ -26,9 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryService {
   private final   CategoryRepository repository;
-  private final TransactionSplitRepository splitRepository;
   private final CategoryMapper categoryMapper;
-  private final TransactionSplitMapper transactionSplitMapper;
   private final CategoryCacheService cacheService;
 
     @CacheEvict(value = "categories", key = "#userId")
@@ -78,10 +72,5 @@ public class CategoryService {
 
     }
 
-    private List<TransactionSplitDto> getCachedSplitByCategory( Long categoryId){
-        var splits = splitRepository.findAllByCategory_Id(categoryId);
-        return splits.stream()
-                .map(transactionSplitMapper::toDto)
-                .toList();
-    }
+
 }
