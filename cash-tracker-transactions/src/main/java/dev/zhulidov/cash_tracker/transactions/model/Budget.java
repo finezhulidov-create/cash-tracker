@@ -24,11 +24,13 @@ public class Budget {
     @Column(name = "limit_amount", nullable = false)
     private BigDecimal limitAmount;
 
+    /** Первое число месяца, к которому относится бюджет. */
     @Column(name = "period", nullable = false)
     private LocalDate period;
 
+    /** Категория бюджета; null означает общий бюджет на весь месяц (учитываются все траты). */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id")
     private Category category;
 
 

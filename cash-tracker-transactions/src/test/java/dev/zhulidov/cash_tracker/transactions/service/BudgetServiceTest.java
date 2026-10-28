@@ -11,6 +11,7 @@ import dev.zhulidov.cash_tracker.transactions.model.BudgetMapperImpl;
 import dev.zhulidov.cash_tracker.transactions.model.Category;
 import dev.zhulidov.cash_tracker.transactions.repository.BudgetRepository;
 import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
+import dev.zhulidov.cash_tracker.transactions.repository.TransactionRepository;
 import dev.zhulidov.cash_tracker.transactions.repository.TransactionSplitRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,8 @@ class BudgetServiceTest {
     private CategoryRepository categoryRepository;
     @Mock
     private TransactionSplitRepository splitRepository;
+    @Mock
+    private TransactionRepository transactionRepository;
     // настоящий маппер: нужно проверить, что он не затирает нормализованный период
     @Spy
     private BudgetMapper budgetMapper = new BudgetMapperImpl();
@@ -61,6 +64,11 @@ class BudgetServiceTest {
     private Budget budget(Long ownerId, String limit, LocalDate period) {
         return Budget.builder().id(BUDGET_ID).userId(ownerId)
                 .limitAmount(new BigDecimal(limit)).period(period).category(category(OWNER_ID)).build();
+    }
+
+    private Budget overallBudget(Long ownerId, String limit, LocalDate period) {
+        return Budget.builder().id(BUDGET_ID).userId(ownerId)
+                .limitAmount(new BigDecimal(limit)).period(period).category(null).build();
     }
 
     private static void assertAmount(String expected, BigDecimal actual) {
@@ -121,7 +129,47 @@ class BudgetServiceTest {
         verify(repository, never()).saveAndFlush(any());
     }
 
+    @Test
+    void createBudget_withoutCategory_createsOverallBudgetForTheMonth() {
+        var request = new BudgetCreateRequest(new BigDecimal("30000.00"), LocalDate.of(2026, 10, 9), null);
+        when(repository.existsByUserIdAndCategoryIsNullAndPeriod(OWNER_ID, OCTOBER)).thenReturn(false);
+
+        var result = budgetService.createBudget(request, OWNER_ID);
+
+        var captor = ArgumentCaptor.forClass(Budget.class);
+        verify(repository).saveAndFlush(captor.capture());
+        assertNull(captor.getValue().getCategory());
+        assertEquals(OCTOBER, captor.getValue().getPeriod());
+        assertNull(result.category());
+        assertAmount("30000.00", result.limitAmount());
+        verifyNoInteractions(categoryRepository);
+        verify(repository, never()).existsByUserIdAndCategory_IdAndPeriod(any(), any(), any());
+    }
+
+    @Test
+    void createBudget_whenOverallBudgetForMonthExists_throwsResourceAlreadyExistsException() {
+        var request = new BudgetCreateRequest(new BigDecimal("30000.00"), OCTOBER, null);
+        when(repository.existsByUserIdAndCategoryIsNullAndPeriod(OWNER_ID, OCTOBER)).thenReturn(true);
+
+        var ex = assertThrows(ResourceAlreadyExistsException.class, () -> budgetService.createBudget(request, OWNER_ID));
+
+        assertTrue(ex.getMessage().contains("Overall"));
+        verify(repository, never()).saveAndFlush(any());
+    }
+
     // ==================== updateBudget ====================
+
+    @Test
+    void updateBudget_whenOverallBudgetMovesToMonthThatAlreadyHasOne_throwsResourceAlreadyExistsException() {
+        var existing = overallBudget(OWNER_ID, "30000.00", OCTOBER);
+        when(repository.findById(BUDGET_ID)).thenReturn(Optional.of(existing));
+        when(repository.existsByUserIdAndCategoryIsNullAndPeriod(OWNER_ID, NOVEMBER)).thenReturn(true);
+
+        assertThrows(ResourceAlreadyExistsException.class, () -> budgetService.updateBudget(
+                new BudgetUpdateRequest(new BigDecimal("30000.00"), NOVEMBER), OWNER_ID, BUDGET_ID));
+
+        verify(repository, never()).saveAndFlush(any());
+    }
 
     @Test
     void updateBudget_whenOnlyLimitChanges_updatesLimitAndKeepsPeriod() {
@@ -247,6 +295,22 @@ class BudgetServiceTest {
         assertAmount("5000.00", status.assigned());
         assertAmount("1200.50", status.spent());
         assertAmount("3799.50", status.available());
+    }
+
+    @Test
+    void getStatus_forOverallBudget_countsAllTransactionsOfTheMonthRegardlessOfCategory() {
+        when(repository.findById(BUDGET_ID)).thenReturn(Optional.of(overallBudget(OWNER_ID, "30000.00", OCTOBER)));
+        when(transactionRepository.sumAmountByUserIdAndDateTimeRange(
+                OWNER_ID, LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 11, 1, 0, 0)))
+                .thenReturn(new BigDecimal("12000.00"));
+
+        var status = budgetService.getStatus(BUDGET_ID, OWNER_ID);
+
+        assertNull(status.category());
+        assertAmount("30000.00", status.assigned());
+        assertAmount("12000.00", status.spent());
+        assertAmount("18000.00", status.available());
+        verifyNoInteractions(splitRepository);
     }
 
     @Test

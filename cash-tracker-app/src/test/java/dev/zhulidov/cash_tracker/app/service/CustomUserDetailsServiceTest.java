@@ -2,7 +2,6 @@ package dev.zhulidov.cash_tracker.app.service;
 
 import dev.zhulidov.cash_tracker.app.model.User;
 import dev.zhulidov.cash_tracker.app.repository.UserRepository;
-import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
 import dev.zhulidov.cash_tracker.common.security.UserPrincipal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Optional;
 
@@ -28,7 +28,7 @@ class CustomUserDetailsServiceTest {
     @Test
     void loadUserByUsername_whenUserExists_returnsPrincipalWithIdEmailAndPasswordHash() {
         var user = User.builder().id(7L).name("Alex").email("alex@test.com").password("hash").build();
-        when(repository.findByEmail("alex@test.com")).thenReturn(Optional.of(user));
+        when(repository.findByEmailIgnoreCase("alex@test.com")).thenReturn(Optional.of(user));
 
         UserDetails details = service.loadUserByUsername("alex@test.com");
 
@@ -39,9 +39,11 @@ class CustomUserDetailsServiceTest {
     }
 
     @Test
-    void loadUserByUsername_whenUserDoesNotExist_throwsResourceNotFoundException() {
-        when(repository.findByEmail("ghost@test.com")).thenReturn(Optional.empty());
+    void loadUserByUsername_whenUserDoesNotExist_throwsUsernameNotFoundExceptionWithoutRevealingEmail() {
+        when(repository.findByEmailIgnoreCase("ghost@test.com")).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> service.loadUserByUsername("ghost@test.com"));
+        var ex = assertThrows(UsernameNotFoundException.class, () -> service.loadUserByUsername("ghost@test.com"));
+
+        assertFalse(ex.getMessage().contains("ghost@test.com"));
     }
 }

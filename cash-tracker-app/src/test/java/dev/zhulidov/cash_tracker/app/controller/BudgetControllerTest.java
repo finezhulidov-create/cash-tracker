@@ -104,14 +104,30 @@ class BudgetControllerTest {
     }
 
     @Test
-    void create_whenCategoryIdIsMissing_returns400() throws Exception {
-        var request = new BudgetCreateRequest(new BigDecimal("100"), OCTOBER, null);
+    void create_whenCategoryIdIsMissing_createsOverallBudgetWithoutCategory() throws Exception {
+        var request = new BudgetCreateRequest(new BigDecimal("30000.00"), OCTOBER, null);
+        when(budgetService.createBudget(request, OWNER_ID))
+                .thenReturn(new BudgetDto(7L, new BigDecimal("30000.00"), OCTOBER, null));
 
         mockMvc.perform(post("/v1/budgets")
                         .with(authentication(authToken())).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.category").doesNotExist());
+    }
+
+    @Test
+    void create_whenCategoryIdIsNotPositive_returns400() throws Exception {
+        var request = new BudgetCreateRequest(new BigDecimal("100"), OCTOBER, 0L);
+
+        mockMvc.perform(post("/v1/budgets")
+                        .with(authentication(authToken())).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.categoryId").exists());
     }
 
     @Test

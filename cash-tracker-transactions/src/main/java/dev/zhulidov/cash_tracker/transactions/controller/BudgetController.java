@@ -35,7 +35,9 @@ public class BudgetController {
 
     @Operation(
             summary = "Create budget",
-            description = "Создаёт лимит трат на категорию на указанный месяц."
+            description = "Создаёт лимит трат на указанный месяц. С categoryId: лимит на категорию. " +
+                    "Без categoryId: общий бюджет на весь месяц (учитываются все траты). " +
+                    "На месяц допускается один бюджет на категорию и один общий."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Budget successfully created"),

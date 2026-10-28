@@ -14,6 +14,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -80,6 +81,21 @@ class JwtFilterTest {
         assertTrue(authentication.isAuthenticated());
         assertSame(principal, authentication.getPrincipal());
         verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_whenUserOfValidTokenWasDeleted_continuesChainWithoutAuthenticationInsteadOfFailing() throws Exception {
+        // регрессия: раньше здесь вылетало ResourceNotFoundException и клиент получал 500
+        request.addHeader("Authorization", "Bearer good-token");
+        when(jwtService.isTokenValid("good-token")).thenReturn(true);
+        when(jwtService.extractEmail("good-token")).thenReturn("ghost@test.com");
+        when(userDetailsService.loadUserByUsername("ghost@test.com"))
+                .thenThrow(new UsernameNotFoundException("User not found"));
+
+        assertDoesNotThrow(() -> filter.doFilter(request, response, chain));
+
+        verify(chain).doFilter(request, response);
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
     @Test

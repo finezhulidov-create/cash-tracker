@@ -1,0 +1,22 @@
+databaseChangeLog:
+  # Общий бюджет на месяц: запись без категории (category_id IS NULL), учитывает все траты месяца.
+  - changeSet:
+      id: 22-budget-category-nullable
+      author: zhulidovdev
+      changes:
+        - dropNotNullConstraint:
+            tableName: budget
+            columnName: category_id
+            columnDataType: BIGINT
+
+  # uq_budget_user_category_period уникальность для NULL-категории не обеспечивает (в PostgreSQL
+  # NULL не равен NULL), поэтому общий бюджет защищаем отдельным частичным индексом.
+  - changeSet:
+      id: 23-budget-overall-unique
+      author: zhulidovdev
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX uq_budget_overall_user_period ON budget (user_id, period) WHERE category_id IS NULL
+      rollback:
+        - sql:
+            sql: DROP INDEX uq_budget_overall_user_period

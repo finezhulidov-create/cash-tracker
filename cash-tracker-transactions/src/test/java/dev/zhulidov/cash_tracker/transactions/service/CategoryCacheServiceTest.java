@@ -62,7 +62,7 @@ class CategoryCacheServiceTest {
     @Test
     void findSplitsByCategory_mapsEverySplitToDto() {
         var split = TransactionSplit.builder().id(1L).amount(new BigDecimal("100")).build();
-        var dto = new TransactionSplitDto(new BigDecimal("100"), null, null);
+        var dto = new TransactionSplitDto(1L, 100L, new BigDecimal("100"), null);
         when(transactionSplitRepository.findAllByCategory_Id(CATEGORY_ID)).thenReturn(List.of(split));
         when(splitMapper.toDto(split)).thenReturn(dto);
 

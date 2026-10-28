@@ -91,48 +91,61 @@ class UserControllerTest {
         verifyNoInteractions(userService);
     }
 
-    // ==================== POST /v1/users/balance ====================
+    // ==================== PUT /v1/users/me/balance ====================
 
     @Test
-    void updateBalance_whenAmountIsValid_returnsNewBalance() throws Exception {
+    void updateBalance_whenAmountIsValid_returnsNewBalanceAsObject() throws Exception {
         when(userService.updateUserBalance(OWNER_ID, new BigDecimal("1500.50"))).thenReturn(new BigDecimal("1500.50"));
 
-        mockMvc.perform(post("/v1/users/balance")
+        mockMvc.perform(put("/v1/users/me/balance")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("1500.50"))
+                        .content("{\"balance\": 1500.50}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").value(1500.50));
+                .andExpect(jsonPath("$.balance").value(1500.50));
     }
 
     @Test
     void updateBalance_whenAmountIsZero_isAllowed() throws Exception {
         when(userService.updateUserBalance(OWNER_ID, BigDecimal.ZERO)).thenReturn(BigDecimal.ZERO);
 
-        mockMvc.perform(post("/v1/users/balance")
+        mockMvc.perform(put("/v1/users/me/balance")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("0"))
+                        .content("{\"balance\": 0}"))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void updateBalance_whenAmountIsNegative_returns400AndDoesNotUpdate() throws Exception {
-        mockMvc.perform(post("/v1/users/balance")
+    void updateBalance_whenAmountIsNegative_returns400WithFieldErrorAndDoesNotUpdate() throws Exception {
+        mockMvc.perform(put("/v1/users/me/balance")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("-10"))
-                .andExpect(status().isBadRequest());
+                        .content("{\"balance\": -10}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors.balance").exists());
 
         verifyNoInteractions(userService);
     }
 
     @Test
+    void updateBalance_whenBalanceFieldIsMissing_returns400() throws Exception {
+        mockMvc.perform(put("/v1/users/me/balance")
+                        .with(authentication(authToken()))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.balance").exists());
+    }
+
+    @Test
     void updateBalance_whenBodyIsMissing_returns400() throws Exception {
-        mockMvc.perform(post("/v1/users/balance")
+        mockMvc.perform(put("/v1/users/me/balance")
                         .with(authentication(authToken()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -141,10 +154,10 @@ class UserControllerTest {
 
     @Test
     void updateBalance_whenUnauthenticated_returns401() throws Exception {
-        mockMvc.perform(post("/v1/users/balance")
+        mockMvc.perform(put("/v1/users/me/balance")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("100"))
+                        .content("{\"balance\": 100}"))
                 .andExpect(status().isUnauthorized());
     }
 }

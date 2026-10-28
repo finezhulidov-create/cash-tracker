@@ -3,6 +3,7 @@ package dev.zhulidov.cash_tracker.app.service;
 import dev.zhulidov.cash_tracker.app.dto.RegisterUserRequest;
 import dev.zhulidov.cash_tracker.app.model.User;
 import dev.zhulidov.cash_tracker.app.repository.UserRepository;
+import dev.zhulidov.cash_tracker.common.exception.ResourceAlreadyExistsException;
 import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,10 +40,15 @@ class UserServiceTest {
     // ==================== createUser ====================
 
     @Test
-    void createUser_encodesPasswordSavesUserWithZeroBalanceAndReturnsResponse() {
+    void createUser_encodesPasswordSavesUserWithZeroBalanceAndReturnsIdNameEmail() {
         var request = new RegisterUserRequest("alex@test.com", "Alex", "plain-password");
+        when(repository.existsByEmailIgnoreCase("alex@test.com")).thenReturn(false);
         when(encoder.encode("plain-password")).thenReturn("encoded");
-        when(repository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repository.save(any(User.class))).thenAnswer(inv -> {
+            User saved = inv.getArgument(0);
+            saved.setId(7L);
+            return saved;
+        });
 
         var response = userService.createUser(request);
 
@@ -53,8 +59,36 @@ class UserServiceTest {
         assertEquals("Alex", saved.getName());
         assertEquals("encoded", saved.getPassword());
         assertEquals(0, BigDecimal.ZERO.compareTo(saved.getBalance()));
+        assertEquals(7L, response.id());
         assertEquals("Alex", response.name());
         assertEquals("alex@test.com", response.email());
+    }
+
+    @Test
+    void createUser_storesEmailInLowerCaseAndTrimsName() {
+        var request = new RegisterUserRequest("  Alex@Test.COM ", " Alex ", "plain-password");
+        when(repository.existsByEmailIgnoreCase("alex@test.com")).thenReturn(false);
+        when(encoder.encode(any())).thenReturn("encoded");
+        when(repository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        userService.createUser(request);
+
+        var captor = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(captor.capture());
+        assertEquals("alex@test.com", captor.getValue().getEmail());
+        assertEquals("Alex", captor.getValue().getName());
+    }
+
+    @Test
+    void createUser_whenEmailAlreadyRegistered_throwsConflictWithEmailCodeAndSavesNothing() {
+        var request = new RegisterUserRequest("Alex@Test.com", "Alex", "plain-password");
+        when(repository.existsByEmailIgnoreCase("alex@test.com")).thenReturn(true);
+
+        var ex = assertThrows(ResourceAlreadyExistsException.class, () -> userService.createUser(request));
+
+        assertEquals("EMAIL_ALREADY_EXISTS", ex.getErrorCode());
+        verify(repository, never()).save(any());
+        verifyNoInteractions(encoder);
     }
 
     // ==================== deleteUser ====================

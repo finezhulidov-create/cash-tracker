@@ -1,5 +1,6 @@
 package dev.zhulidov.cash_tracker.transactions.service;
 
+import dev.zhulidov.cash_tracker.common.exception.ResourceConflictException;
 import dev.zhulidov.cash_tracker.common.util.PageUtils;
 import dev.zhulidov.cash_tracker.transactions.dto.CategoryCreateRequestDto;
 import dev.zhulidov.cash_tracker.transactions.dto.CategoryDto;
@@ -8,6 +9,7 @@ import dev.zhulidov.cash_tracker.transactions.dto.TransactionSplitDto;
 import dev.zhulidov.cash_tracker.transactions.model.Category;
 import dev.zhulidov.cash_tracker.transactions.model.CategoryMapper;
 import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
+import dev.zhulidov.cash_tracker.transactions.repository.TransactionSplitRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -16,12 +18,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import dev.zhulidov.cash_tracker.common.util.SecurityUtils;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
   private final   CategoryRepository repository;
+  private final TransactionSplitRepository splitRepository;
   private final CategoryMapper categoryMapper;
   private final CategoryCacheService cacheService;
 
@@ -42,6 +43,11 @@ public class CategoryService {
         SecurityUtils.assertOwner(category.getUserId(),userId);
         return categoryMapper.toDto(category);
     }
+
+    /**
+     * Категорию с тратами удалить нельзя: раньше каскад в БД молча удалял все её части, и сумма
+     * транзакции переставала сходиться с суммой частей. Сначала нужно перенести или удалить траты.
+     */
     @Caching(evict = {
             @CacheEvict(value = "categories", key = "#userId"),
             @CacheEvict(value = "splits", key = "#userId + ':' + #id")
@@ -49,6 +55,10 @@ public class CategoryService {
     public void deleteCategoryById(Long id, Long userId){
         var category = repository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Category not found"));
         SecurityUtils.assertOwner(category.getUserId(),userId);
+        if (splitRepository.existsByCategory_Id(id)) {
+            throw new ResourceConflictException("CATEGORY_IN_USE",
+                    "Category is used by transactions: move or delete them first");
+        }
         repository.deleteById(id);
 
     }

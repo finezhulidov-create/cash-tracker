@@ -14,7 +14,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * Здесь проверяются только ветки, которые решают, нужен ли фильтр вообще.
- * Сами предикаты (join по сплитам, диапазоны) проверяются на настоящей БД в TransactionSpecificationsIT.
+ * Сами предикаты (join по сплитам, диапазоны) проверяются на настоящей БД в RepositoriesIntegrationTest.
  */
 class TransactionSpecificationsTest {
 
@@ -24,12 +24,16 @@ class TransactionSpecificationsTest {
     }
 
     @Test
-    void dateBetween_whenAnyBoundIsNull_returnsNullSpecification() {
+    void dateBetween_whenBothBoundsAreNull_returnsNullSpecification() {
+        assertNull(TransactionSpecifications.dateBetween(null, null));
+    }
+
+    @Test
+    void dateBetween_whenOnlyOneBoundIsGiven_returnsOpenRangeSpecification() {
         var now = LocalDateTime.now();
 
-        assertNull(TransactionSpecifications.dateBetween(null, now));
-        assertNull(TransactionSpecifications.dateBetween(now, null));
-        assertNull(TransactionSpecifications.dateBetween(null, null));
+        assertNotNull(TransactionSpecifications.dateBetween(now, null));
+        assertNotNull(TransactionSpecifications.dateBetween(null, now));
     }
 
     @Test

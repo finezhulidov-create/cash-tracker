@@ -3,6 +3,7 @@ package dev.zhulidov.cash_tracker.app.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.zhulidov.cash_tracker.app.service.CustomUserDetailsService;
 import dev.zhulidov.cash_tracker.common.exception.InaccessibleResourceException;
+import dev.zhulidov.cash_tracker.common.exception.ResourceConflictException;
 import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
 import dev.zhulidov.cash_tracker.common.security.UserPrincipal;
 import dev.zhulidov.cash_tracker.common.service.JwtService;
@@ -182,6 +183,18 @@ class CategoryControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void deleteCategory_whenCategoryHasTransactions_returns409WithCategoryInUseCode() throws Exception {
+        org.mockito.Mockito.doThrow(new ResourceConflictException("CATEGORY_IN_USE", "Category is used by transactions"))
+                .when(categoryService).deleteCategoryById(CATEGORY_ID, OWNER_ID);
+
+        mockMvc.perform(delete("/v1/categories/{categoryId}", CATEGORY_ID)
+                        .with(authentication(authToken()))
+                        .with(csrf()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("CATEGORY_IN_USE"));
+    }
+
     // ==================== PUT /v1/categories/{id} ====================
 
     @Test
@@ -256,15 +269,21 @@ class CategoryControllerTest {
     // ==================== GET /v1/categories/{id}/splits ====================
 
     @Test
-    void getSplits_whenExists_returns200() throws Exception {
-        var dto = new TransactionSplitDto(new BigDecimal("100"), null, null);
+    void getSplits_whenExists_returns200WithPageOfSplits() throws Exception {
+        var dto = new TransactionSplitDto(55L, 100L, new BigDecimal("100"),
+                new CategoryDto(CATEGORY_ID, "Food", OWNER_ID));
         var page = new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1);
         when(categoryService.getSplitsByCategory(eq(OWNER_ID), eq(CATEGORY_ID), any())).thenReturn(page);
 
         mockMvc.perform(get("/v1/categories/{categoryId}/splits", CATEGORY_ID)
                         .with(authentication(authToken())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(55))
+                .andExpect(jsonPath("$.content[0].transactionId").value(100))
+                .andExpect(jsonPath("$.content[0].category.categoryName").value("Food"))
+                // тот же формат страницы, что и у остальных списков
+                .andExpect(jsonPath("$.page.totalElements").value(1));
     }
 
     @Test

@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, "update/**" ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # verify = юнит-тесты + интеграционные тесты на Testcontainers (Postgres, Redis; Docker есть на ubuntu-latest)
+      # + отчёты покрытия JaCoCo
+      - name: Build and run all tests
+        run: mvn -B verify
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: |
+            cash-tracker-app/target/site/jacoco
+            cash-tracker-app/target/site/jacoco-aggregate
+          if-no-files-found: ignore
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: "**/target/surefire-reports"
+          if-no-files-found: ignore
+
+  docker-image:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Проверяем, что Dockerfile собирается на чистом клоне (без тестов: они прогоняются в соседнем job)
+      - name: Build image
+        run: docker build -t cash-tracker:ci .

@@ -25,3 +25,11 @@ databaseChangeLog:
       file: db/changelog/3-budgets/012-add-unique-budget.yaml
   - include:
       file: db/changelog/4-users/013-add-user-balance.yaml
+  - include:
+      file: db/changelog/5-hardening/014-fix-id-identity.yaml
+  - include:
+      file: db/changelog/5-hardening/015-add-indexes.yaml
+  - include:
+      file: db/changelog/5-hardening/016-split-category-fk-protect.yaml
+  - include:
+      file: db/changelog/3-budgets/017-budget-overall.yaml

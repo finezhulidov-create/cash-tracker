@@ -1,6 +1,7 @@
 package dev.zhulidov.cash_tracker.transactions.service;
 
 import dev.zhulidov.cash_tracker.common.exception.InaccessibleResourceException;
+import dev.zhulidov.cash_tracker.common.exception.ResourceConflictException;
 import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
 import dev.zhulidov.cash_tracker.transactions.dto.CategoryCreateRequestDto;
 import dev.zhulidov.cash_tracker.transactions.dto.CategoryDto;
@@ -109,12 +110,35 @@ class CategoryServiceTest {
     // ==================== deleteCategoryById ====================
 
     @Test
-    void deleteCategoryById_whenOwned_deletes() {
+    void deleteCategoryById_whenOwnedAndUnused_deletes() {
         when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory()));
+        when(splitRepository.existsByCategory_Id(CATEGORY_ID)).thenReturn(false);
 
         categoryService.deleteCategoryById(CATEGORY_ID, OWNER_ID);
 
         verify(repository).deleteById(CATEGORY_ID);
+    }
+
+    @Test
+    void deleteCategoryById_whenCategoryHasTransactions_throwsConflictAndKeepsCategory() {
+        when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory()));
+        when(splitRepository.existsByCategory_Id(CATEGORY_ID)).thenReturn(true);
+
+        var ex = assertThrows(ResourceConflictException.class,
+                () -> categoryService.deleteCategoryById(CATEGORY_ID, OWNER_ID));
+
+        assertEquals("CATEGORY_IN_USE", ex.getErrorCode());
+        verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteCategoryById_whenBelongsToAnotherUser_doesNotRevealWhetherItIsInUse() {
+        when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(foreignCategory()));
+
+        assertThrows(InaccessibleResourceException.class,
+                () -> categoryService.deleteCategoryById(CATEGORY_ID, OWNER_ID));
+
+        verifyNoInteractions(splitRepository);
     }
 
     @Test
@@ -237,9 +261,9 @@ class CategoryServiceTest {
 
     @Test
     void getSplitsByCategory_whenRequestedPageWithinBounds_returnsCorrectSlice() {
-        var dto1 = new TransactionSplitDto(new BigDecimal("100"), null, null);
-        var dto2 = new TransactionSplitDto(new BigDecimal("200"), null, null);
-        var dto3 = new TransactionSplitDto(new BigDecimal("300"), null, null);
+        var dto1 = new TransactionSplitDto(1L, 100L, new BigDecimal("100"), null);
+        var dto2 = new TransactionSplitDto(2L, 100L, new BigDecimal("200"), null);
+        var dto3 = new TransactionSplitDto(3L, 101L, new BigDecimal("300"), null);
 
         when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory()));
         when(cacheService.findSplitsByCategory(OWNER_ID, CATEGORY_ID)).thenReturn(List.of(dto1, dto2, dto3));
@@ -257,7 +281,7 @@ class CategoryServiceTest {
 
     @Test
     void getSplitsByCategory_whenRequestedPageBeyondBounds_returnsEmptyContentButCorrectTotal() {
-        var dto1 = new TransactionSplitDto(new BigDecimal("100"), null, null);
+        var dto1 = new TransactionSplitDto(1L, 100L, new BigDecimal("100"), null);
         when(repository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory()));
         when(cacheService.findSplitsByCategory(OWNER_ID, CATEGORY_ID)).thenReturn(List.of(dto1));
 

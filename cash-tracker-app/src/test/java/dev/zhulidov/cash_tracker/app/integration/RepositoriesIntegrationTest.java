@@ -17,17 +17,23 @@ import jakarta.persistence.PersistenceContext;
 import org.hibernate.Hibernate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -52,6 +58,10 @@ class RepositoriesIntegrationTest extends AbstractIntegrationTest {
     private BudgetRepository budgetRepository;
     @PersistenceContext
     private EntityManager em;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private record Split(Category category, String amount) {
     }
@@ -92,10 +102,13 @@ class RepositoriesIntegrationTest extends AbstractIntegrationTest {
         var saved = user();
         em.clear();
 
-        var loaded = userRepository.findByEmail(saved.getEmail()).orElseThrow();
+        // поиск не зависит от регистра: так пользователь войдёт, даже если введёт email заглавными буквами
+        var loaded = userRepository.findByEmailIgnoreCase(saved.getEmail().toUpperCase()).orElseThrow();
 
         assertEquals(saved.getId(), loaded.getId());
         assertAmount("0", loaded.getBalance());
+        assertTrue(userRepository.existsByEmailIgnoreCase(saved.getEmail().toUpperCase()));
+        assertFalse(userRepository.existsByEmailIgnoreCase("nobody-" + UUID.randomUUID() + "@test.com"));
     }
 
     @Test
@@ -271,5 +284,222 @@ class RepositoriesIntegrationTest extends AbstractIntegrationTest {
         budget(owner, food, OCTOBER, "1000");
 
         assertThrows(DataIntegrityViolationException.class, () -> budget(owner, food, OCTOBER, "2000"));
+    }
+
+    // ==================== общий бюджет (без категории) ====================
+
+    @Test
+    void overallBudget_isFoundSeparatelyFromCategoryBudgets() {
+        var owner = user();
+        var other = user();
+        var food = category(owner, "Food");
+        budget(owner, food, OCTOBER, "1000");
+        assertFalse(budgetRepository.existsByUserIdAndCategoryIsNullAndPeriod(owner.getId(), OCTOBER));
+
+        budget(owner, null, OCTOBER, "30000");
+
+        assertTrue(budgetRepository.existsByUserIdAndCategoryIsNullAndPeriod(owner.getId(), OCTOBER));
+        assertFalse(budgetRepository.existsByUserIdAndCategoryIsNullAndPeriod(owner.getId(), OCTOBER.plusMonths(1)));
+        assertFalse(budgetRepository.existsByUserIdAndCategoryIsNullAndPeriod(other.getId(), OCTOBER));
+        // оба бюджета месяца возвращаются, у общего категория не подгружается (её нет)
+        em.flush();
+        em.clear();
+        var budgets = budgetRepository.findAllByUserIdAndPeriod(owner.getId(), OCTOBER);
+        assertEquals(2, budgets.size());
+        assertEquals(1, budgets.stream().filter(b -> b.getCategory() == null).count());
+    }
+
+    @Test
+    void overallBudget_isUniquePerUserAndMonthEvenThoughCategoryIsNull() {
+        var owner = user();
+        budget(owner, null, OCTOBER, "30000");
+
+        // обычный UNIQUE с NULL не сработал бы (NULL != NULL), поэтому нужен частичный индекс
+        assertThrows(DataIntegrityViolationException.class, () -> budget(owner, null, OCTOBER, "999"));
+    }
+
+    @Test
+    void overallBudget_canExistForAnotherMonthAnotherUserAndAlongsideCategoryBudget() {
+        var owner = user();
+        var other = user();
+        var food = category(owner, "Food");
+
+        budget(owner, null, OCTOBER, "30000");
+
+        assertDoesNotThrow(() -> {
+            budget(owner, null, OCTOBER.plusMonths(1), "30000");
+            budget(other, null, OCTOBER, "30000");
+            budget(owner, food, OCTOBER, "1000");
+        });
+    }
+
+    // ==================== новые запросы ====================
+
+    @Test
+    void existsByCategory_isTrueOnlyWhenCategoryHasAtLeastOneSplit() {
+        var owner = user();
+        var used = category(owner, "Used");
+        var unused = category(owner, "Unused");
+        transaction(owner, LocalDateTime.of(2026, 10, 5, 10, 0), new Split(used, "10.00"));
+
+        assertTrue(splitRepository.existsByCategory_Id(used.getId()));
+        assertFalse(splitRepository.existsByCategory_Id(unused.getId()));
+    }
+
+    @Test
+    void sumByCategory_groupsLargestFirstAndIgnoresOtherUsersAndOtherPeriods() {
+        var owner = user();
+        var stranger = user();
+        var food = category(owner, "Food");
+        var home = category(owner, "Home");
+        var foreign = category(stranger, "Foreign");
+        transaction(owner, LocalDateTime.of(2026, 10, 5, 10, 0), new Split(food, "700.00"), new Split(home, "300.00"));
+        transaction(owner, LocalDateTime.of(2026, 10, 20, 10, 0), new Split(food, "500.00"));
+        transaction(owner, LocalDateTime.of(2026, 11, 1, 0, 0), new Split(home, "9999.00"));   // следующий месяц
+        transaction(stranger, LocalDateTime.of(2026, 10, 5, 10, 0), new Split(foreign, "70.00"));
+
+        var rows = splitRepository.sumByCategory(owner.getId(),
+                LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 11, 1, 0, 0));
+
+        assertEquals(2, rows.size());
+        assertEquals("Food", rows.get(0).categoryName());
+        assertAmount("1200.00", rows.get(0).spent());
+        assertEquals("Home", rows.get(1).categoryName());
+        assertAmount("300.00", rows.get(1).spent());
+        assertTrue(splitRepository.sumByCategory(owner.getId(),
+                LocalDateTime.of(2025, 1, 1, 0, 0), LocalDateTime.of(2025, 2, 1, 0, 0)).isEmpty());
+    }
+
+    @Test
+    void sumOfTransactionsOverHalfOpenRange_excludesTheUpperBoundary() {
+        var owner = user();
+        var food = category(owner, "Food");
+        transaction(owner, LocalDateTime.of(2026, 10, 1, 0, 0), new Split(food, "100.00"));       // нижняя граница входит
+        transaction(owner, LocalDateTime.of(2026, 10, 31, 23, 59, 59), new Split(food, "50.00")); // последняя секунда входит
+        transaction(owner, LocalDateTime.of(2026, 11, 1, 0, 0), new Split(food, "1000.00"));      // верхняя граница не входит
+
+        assertAmount("150.00", transactionRepository.sumAmountByUserIdAndDateTimeRange(owner.getId(),
+                LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 11, 1, 0, 0)));
+    }
+
+    @Test
+    void monthlyTotals_groupsByMonthOfTheRangeOnly() {
+        var owner = user();
+        var stranger = user();
+        var food = category(owner, "Food");
+        var foreign = category(stranger, "Foreign");
+        transaction(owner, LocalDateTime.of(2026, 3, 5, 10, 0), new Split(food, "100.50"));
+        transaction(owner, LocalDateTime.of(2026, 3, 25, 10, 0), new Split(food, "20.00"));
+        transaction(owner, LocalDateTime.of(2026, 10, 1, 0, 0), new Split(food, "2500.00"));
+        transaction(owner, LocalDateTime.of(2027, 1, 1, 0, 0), new Split(food, "777.00"));      // другой год
+        transaction(stranger, LocalDateTime.of(2026, 3, 5, 10, 0), new Split(foreign, "5.00"));
+
+        var totals = transactionRepository.monthlyTotals(owner.getId(),
+                LocalDateTime.of(2026, 1, 1, 0, 0), LocalDateTime.of(2027, 1, 1, 0, 0));
+
+        var byMonth = totals.stream().collect(java.util.stream.Collectors.toMap(
+                TransactionRepository.MonthlyTotal::getMonthNumber, TransactionRepository.MonthlyTotal::getTotal));
+        assertEquals(2, byMonth.size());
+        assertAmount("120.50", byMonth.get(3));
+        assertAmount("2500.00", byMonth.get(10));
+    }
+
+    @Test
+    void specifications_supportOpenEndedDateRanges() {
+        var owner = user();
+        var food = category(owner, "Food");
+        transaction(owner, LocalDateTime.of(2026, 9, 1, 10, 0), new Split(food, "10.00"));
+        transaction(owner, LocalDateTime.of(2026, 10, 1, 10, 0), new Split(food, "20.00"));
+        transaction(owner, LocalDateTime.of(2026, 11, 1, 10, 0), new Split(food, "30.00"));
+        var byOwner = TransactionSpecifications.hasUserId(owner.getId());
+
+        assertEquals(2, count(byOwner.and(TransactionSpecifications.dateBetween(LocalDateTime.of(2026, 10, 1, 10, 0), null))));
+        assertEquals(2, count(byOwner.and(TransactionSpecifications.dateBetween(null, LocalDateTime.of(2026, 10, 1, 10, 0)))));
+    }
+
+    // ==================== схема БД после миграций ====================
+
+    @Test
+    void migrations_createIdentityColumnsForIdsOfTransactionSplitAndBudget() {
+        for (String table : List.of("transaction", "transaction_split", "budget", "users", "categories")) {
+            String isIdentity = jdbcTemplate.queryForObject(
+                    "SELECT is_identity FROM information_schema.columns "
+                            + "WHERE table_schema = current_schema() AND table_name = ? AND column_name = 'id'",
+                    String.class, table);
+            assertEquals("YES", isIdentity, "id of " + table + " must be generated by the database");
+        }
+    }
+
+    @Test
+    void migrations_createIndexesForTheHotQueries() {
+        List<String> indexes = jdbcTemplate.queryForList(
+                "SELECT indexname FROM pg_indexes WHERE schemaname = current_schema()", String.class);
+
+        assertTrue(indexes.containsAll(List.of(
+                "idx_transaction_user_date", "idx_split_transaction", "idx_split_category",
+                "idx_categories_user", "idx_budget_category", "uq_budget_overall_user_period")),
+                "indexes were: " + indexes);
+    }
+
+    @Test
+    void migrations_makeCategoryForeignKeyOfSplitsProtectingButDeferred() {
+        var row = jdbcTemplate.queryForMap(
+                "SELECT confdeltype, condeferrable, condeferred FROM pg_constraint WHERE conname = 'fk_split_category'");
+
+        // 'a' = NO ACTION (раньше было 'c' = CASCADE), проверка откладывается до конца транзакции
+        assertEquals("a", String.valueOf(row.get("confdeltype")));
+        assertEquals(true, row.get("condeferrable"));
+        assertEquals(true, row.get("condeferred"));
+    }
+
+    @Test
+    void migrations_userBalanceIsNotNullWithZeroDefault() {
+        var row = jdbcTemplate.queryForMap(
+                "SELECT is_nullable, column_default FROM information_schema.columns "
+                        + "WHERE table_schema = current_schema() AND table_name = 'users' AND column_name = 'balance'");
+
+        assertEquals("NO", row.get("is_nullable"));
+        assertTrue(String.valueOf(row.get("column_default")).startsWith("0"), "default was " + row.get("column_default"));
+    }
+
+    // ==================== защита категорий на уровне БД ====================
+
+    /**
+     * Без тестовой транзакции: проверка отложенного внешнего ключа срабатывает только при коммите.
+     * Данные создаются и убираются через настоящие коммиты; пользователь удаляется в конце одним DELETE,
+     * что заодно проверяет, что каскад по пользователю проходит через защиту категорий.
+     */
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void deletingCategoryWithSplitsFailsAtCommitAndDeletingTheUserStillWorks() {
+        var tx = new TransactionTemplate(transactionManager);
+        long[] ids = tx.execute(status -> {
+            var owner = user();
+            var food = category(owner, "Food");
+            transaction(owner, LocalDateTime.of(2026, 10, 5, 10, 0), new Split(food, "10.00"));
+            return new long[]{owner.getId(), food.getId()};
+        });
+        long userId = ids[0];
+        long categoryId = ids[1];
+
+        try {
+            // удаление категории в обход приложения: БД не даёт молча потерять траты
+            var failure = assertThrows(Exception.class, () -> tx.executeWithoutResult(
+                    status -> jdbcTemplate.update("DELETE FROM categories WHERE id = ?", categoryId)));
+            assertTrue(NestedExceptionUtils.getMostSpecificCause(failure).getMessage().contains("fk_split_category"),
+                    "cause was: " + NestedExceptionUtils.getMostSpecificCause(failure).getMessage());
+            assertEquals(1, jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM categories WHERE id = ?", Integer.class, categoryId));
+            assertEquals(1, jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM transaction_split WHERE category_id = ?", Integer.class, categoryId));
+        } finally {
+            // каскад по пользователю: категории, транзакции и их части удаляются вместе, порядок каскадов не важен
+            tx.executeWithoutResult(status -> jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId));
+        }
+
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users WHERE id = ?", Integer.class, userId));
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM categories WHERE id = ?", Integer.class, categoryId));
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM transaction_split WHERE category_id = ?", Integer.class, categoryId));
     }
 }

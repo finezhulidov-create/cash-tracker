@@ -9,6 +9,8 @@ import dev.zhulidov.cash_tracker.transactions.repository.TransactionSplitReposit
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -26,6 +28,8 @@ public class CategoryCacheService {
                 .toList();
     }
 
+    // Транзакция нужна, чтобы при маппинге подгрузились связи category и transaction (open-in-view выключен).
+    @Transactional(readOnly = true)
     @Cacheable(value = "splits", key = "#userId + ':' + #categoryId")
     public List<TransactionSplitDto> findSplitsByCategory(Long userId, Long categoryId){
         return transactionSplitRepository.findAllByCategory_Id(categoryId).stream()
