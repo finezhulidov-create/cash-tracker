@@ -10,6 +10,7 @@ public class CashTrackerApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(CashTrackerApplication.class, args);
+        
     }
 
 }
