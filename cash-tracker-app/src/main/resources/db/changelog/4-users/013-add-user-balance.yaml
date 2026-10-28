@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 14-add-user-balance
+      author: zhulidovdev
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: balance
+                  type: DECIMAL(19,4)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

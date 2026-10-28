@@ -28,8 +28,13 @@ public class TransactionSpecifications {
         };
     }
 
+    /** Период с включёнными границами; можно указать только одну из них (открытый диапазон). */
     public static Specification<Transaction> dateBetween(LocalDateTime from, LocalDateTime to) {
-        if (from == null || to == null) return null;
-        return (root, query, cb) -> cb.between(root.get("dateTime"), from, to);
+        if (from == null && to == null) return null;
+        return (root, query, cb) -> {
+            if (from != null && to != null) return cb.between(root.get("dateTime"), from, to);
+            if (from != null) return cb.greaterThanOrEqualTo(root.get("dateTime"), from);
+            return cb.lessThanOrEqualTo(root.get("dateTime"), to);
+        };
     }
 }

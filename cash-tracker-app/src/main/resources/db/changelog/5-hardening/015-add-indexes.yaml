@@ -1,0 +1,65 @@
+databaseChangeLog:
+  # PostgreSQL не создаёт индексы на внешних ключах сам. Без них список трат пользователя,
+  # суммы по категориям/месяцам и проверка «категория используется» сканируют таблицы целиком.
+  - changeSet:
+      id: 16-index-transaction-user-date
+      author: zhulidovdev
+      changes:
+        # список трат пользователя от новых к старым и все суммы за период
+        - createIndex:
+            tableName: transaction
+            indexName: idx_transaction_user_date
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: date_time
+                  descending: true
+
+  - changeSet:
+      id: 17-index-split-transaction
+      author: zhulidovdev
+      changes:
+        # подгрузка частей транзакции
+        - createIndex:
+            tableName: transaction_split
+            indexName: idx_split_transaction
+            columns:
+              - column:
+                  name: transaction_id
+
+  - changeSet:
+      id: 18-index-split-category
+      author: zhulidovdev
+      changes:
+        # суммы по категории и проверка «у категории есть траты»
+        - createIndex:
+            tableName: transaction_split
+            indexName: idx_split_category
+            columns:
+              - column:
+                  name: category_id
+
+  - changeSet:
+      id: 19-index-categories-user
+      author: zhulidovdev
+      changes:
+        # список категорий пользователя
+        - createIndex:
+            tableName: categories
+            indexName: idx_categories_user
+            columns:
+              - column:
+                  name: user_id
+
+  - changeSet:
+      id: 20-index-budget-category
+      author: zhulidovdev
+      changes:
+        # каскадное удаление бюджетов при удалении категории
+        - createIndex:
+            tableName: budget
+            indexName: idx_budget_category
+            columns:
+              - column:
+                  name: category_id

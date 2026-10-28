@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 13-add-unique-budget-user-category-period
+      author: zhulidovdev
+      changes:
+        - addUniqueConstraint:
+            tableName: budget
+            columnNames: user_id, category_id, period
+            constraintName: uq_budget_user_category_period

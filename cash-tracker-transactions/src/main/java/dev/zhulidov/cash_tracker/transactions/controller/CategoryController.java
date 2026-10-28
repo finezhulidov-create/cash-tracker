@@ -10,11 +10,14 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +25,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
+@Tag(name = "Categories", description = "Категории трат пользователя")
 @Validated
 @RestController
-@RequestMapping("/categories")
+@RequestMapping("/v1/categories")
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService service;
@@ -63,14 +67,17 @@ public class CategoryController {
         return ResponseEntity.ok(service.getCategoryById(categoryId, principal.getId()));
     }
     @Operation(
-            summary = "Delete category"
-
+            summary = "Delete category",
+            description = "Категорию с тратами удалить нельзя (409 CATEGORY_IN_USE): сначала нужно перенести или удалить траты. " +
+                    "Бюджеты этой категории удаляются вместе с ней."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Category successfully deleted"),
             @ApiResponse(responseCode = "400", description = "Not valid data ",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "One of the specified categories was not found or is unavailable." ,
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Категория используется в тратах (CATEGORY_IN_USE)",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/{categoryId}")
@@ -109,7 +116,7 @@ public class CategoryController {
     })
     @GetMapping("/mine")
     public PagedModel<CategoryDto> getCategoriesByUser(@AuthenticationPrincipal UserPrincipal principal,
-                                                       Pageable pageable){
+                                               @ParameterObject Pageable pageable){
             Page<CategoryDto> page = service.getCategoriesByUserId(principal.getId(), pageable);
             return new PagedModel<>(page);
     }
@@ -122,10 +129,10 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Category not found or inaccessible")
     })
     @GetMapping("/{categoryId}/splits")
-    public Page<TransactionSplitDto> getSplits(@AuthenticationPrincipal UserPrincipal principal,
+    public PagedModel<TransactionSplitDto> getSplits(@AuthenticationPrincipal UserPrincipal principal,
                                                @PathVariable("categoryId") @Positive Long categoryId,
-                                               Pageable pageable){
-        return service.getSplitsByCategory(principal.getId(), categoryId, pageable);
+                                               @ParameterObject Pageable pageable){
+        return new PagedModel<>(service.getSplitsByCategory(principal.getId(), categoryId, pageable));
     }
 
 }

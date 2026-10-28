@@ -9,7 +9,6 @@ import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     Page<Category> findAllByUserId(Long id, Pageable pageable);
-
-    List<Category> findAllByTransactionSplits_Category_Id(Long id);
+    List<Category> findAllByUserId(Long userId);
 
 }

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  # fk_split_category был ON DELETE CASCADE: удаление категории молча стирало все её части трат,
+  # и сумма транзакции переставала сходиться с суммой частей. Теперь удалить категорию с тратами
+  # нельзя (NO ACTION), приложение отвечает 409 CATEGORY_IN_USE ещё до обращения к БД.
+  #
+  # Проверка отложена до конца транзакции (DEFERRABLE INITIALLY DEFERRED): при удалении пользователя
+  # БД каскадом удаляет и категории, и транзакции с частями, и порядок этих каскадов не определён;
+  # с немедленной проверкой удаление аккаунта могло бы упасть, если категории удаляются раньше частей.
+  - changeSet:
+      id: 21-split-category-fk-protect
+      author: zhulidovdev
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: transaction_split
+            constraintName: fk_split_category
+        - addForeignKeyConstraint:
+            baseTableName: transaction_split
+            baseColumnNames: category_id
+            constraintName: fk_split_category
+            referencedTableName: categories
+            referencedColumnNames: id
+            deferrable: true
+            initiallyDeferred: true

@@ -1,9 +1,14 @@
 package dev.zhulidov.cash_tracker.transactions.service;
 
 import dev.zhulidov.cash_tracker.common.exception.InaccessibleResourceException;
+import dev.zhulidov.cash_tracker.common.exception.InvalidRequestException;
 import dev.zhulidov.cash_tracker.common.exception.ResourceNotFoundException;
 import dev.zhulidov.cash_tracker.common.exception.TransactionSplitMismatchException;
-import dev.zhulidov.cash_tracker.transactions.dto.*;
+import dev.zhulidov.cash_tracker.transactions.dto.SplitRequest;
+import dev.zhulidov.cash_tracker.transactions.dto.TransactionCreateRequest;
+import dev.zhulidov.cash_tracker.transactions.dto.TransactionDto;
+import dev.zhulidov.cash_tracker.transactions.dto.TransactionSearchCriteria;
+import dev.zhulidov.cash_tracker.transactions.dto.TransactionUpdateRequest;
 import dev.zhulidov.cash_tracker.transactions.model.Category;
 import dev.zhulidov.cash_tracker.transactions.model.Transaction;
 import dev.zhulidov.cash_tracker.transactions.model.TransactionMapper;
@@ -14,18 +19,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +45,15 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
 
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 28, 12, 0);
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-10-28T12:00:00Z"), ZoneOffset.UTC);
+
+    private static final Long OWNER_ID = 1L;
+    private static final Long STRANGER_ID = 2L;
+    private static final Long CATEGORY_ID = 10L;
+    private static final Long OTHER_CATEGORY_ID = 20L;
+    private static final Long TRANSACTION_ID = 100L;
+
     @Mock
     private TransactionRepository transactionRepository;
     @Mock
@@ -49,14 +65,15 @@ class TransactionServiceTest {
     @Mock
     private Cache splitsCache;
 
-    @InjectMocks
-    private TransactionService transactionService;
+    private TransactionService service;
 
-    private static final Long OWNER_ID = 1L;
-    private static final Long STRANGER_ID = 2L;
-    private static final Long CATEGORY_ID = 10L;
-    private static final Long OTHER_CATEGORY_ID = 20L;
-    private static final Long TRANSACTION_ID = 100L;
+    @BeforeEach
+    void setUp() {
+        lenient().when(cacheManager.getCache("splits")).thenReturn(splitsCache);
+        service = new TransactionService(transactionRepository, categoryRepository, transactionMapper, cacheManager, FIXED_CLOCK);
+    }
+
+    // ==================== fixtures ====================
 
     private Category ownedCategory(Long categoryId) {
         return Category.builder().id(categoryId).categoryName("Food").userId(OWNER_ID).build();
@@ -66,56 +83,107 @@ class TransactionServiceTest {
         return Category.builder().id(categoryId).categoryName("Food").userId(STRANGER_ID).build();
     }
 
-    private CategoryDto categoryDtoRef(Long categoryId) {
-        return new CategoryDto(categoryId, "Food", "owner");
+    private SplitRequest split(String amount, Long categoryId) {
+        return new SplitRequest(categoryId, new BigDecimal(amount));
     }
 
-    private TransactionSplitDto splitDto(BigDecimal amount, Long categoryId) {
-        return new TransactionSplitDto(amount, categoryDtoRef(categoryId), null);
+    private TransactionDto dto() {
+        return new TransactionDto(TRANSACTION_ID, OWNER_ID, new BigDecimal("1000.00"), "Supermarket", NOW, List.of());
     }
 
-    @BeforeEach
-    void setUp() {
-        lenient().when(cacheManager.getCache("splits")).thenReturn(splitsCache);
+    private Transaction existingTransaction(Long ownerId) {
+        var trans = Transaction.builder().id(TRANSACTION_ID).userId(ownerId)
+                .amount(new BigDecimal("1000.00")).description("Old").dateTime(NOW.minusDays(1)).build();
+        var oldSplit = TransactionSplit.builder().id(1L).transaction(trans)
+                .category(ownedCategory(CATEGORY_ID)).amount(new BigDecimal("1000.00")).build();
+        trans.setSplits(new ArrayList<>(List.of(oldSplit)));
+        return trans;
+    }
+
+    private TransactionCreateRequest createRequest(LocalDateTime dateTime, SplitRequest... splits) {
+        return new TransactionCreateRequest("Supermarket", new BigDecimal("1000.00"), dateTime, List.of(splits));
     }
 
     // ==================== createTransaction ====================
 
     @Test
-    void createTransaction_whenValid_savesEvictsCacheForEachDistinctCategoryAndReturnsDto() {
-        var request = new TransactionCreateRequest(
-                List.of(splitDto(new BigDecimal("2000.00"), CATEGORY_ID),
-                        splitDto(new BigDecimal("500.00"), CATEGORY_ID),
-                        splitDto(new BigDecimal("300.00"), OTHER_CATEGORY_ID)),
-                "Supermarket",
-                new BigDecimal("2800.00")
-        );
+    void createTransaction_whenValid_savesAndEvictsCacheOncePerDistinctCategory() {
+        var request = new TransactionCreateRequest("Supermarket", new BigDecimal("1000.00"), null,
+                List.of(split("500.00", CATEGORY_ID), split("200.00", CATEGORY_ID), split("300.00", OTHER_CATEGORY_ID)));
         when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
         when(categoryRepository.findById(OTHER_CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(OTHER_CATEGORY_ID)));
-        var expectedDto = new TransactionDto(TRANSACTION_ID, OWNER_ID, request.amount(), request.description(), LocalDateTime.now());
-        when(transactionMapper.toDto(any(Transaction.class))).thenReturn(expectedDto);
+        when(transactionMapper.toDto(any(Transaction.class))).thenReturn(dto());
 
-        var result = transactionService.createTransaction(request, OWNER_ID);
+        var result = service.createTransaction(request, OWNER_ID);
 
-        assertEquals(expectedDto, result);
+        assertEquals(dto(), result);
         var captor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(captor.capture());
-        assertEquals(3, captor.getValue().getSplits().size());
-
-        // эвикт должен произойти по каждой уникальной категории (две штуки), не по числу сплитов (три)
+        var saved = captor.getValue();
+        assertEquals(OWNER_ID, saved.getUserId());
+        assertEquals("Supermarket", saved.getDescription());
+        assertEquals(new BigDecimal("1000.00"), saved.getAmount());
+        assertEquals(3, saved.getSplits().size());
+        assertTrue(saved.getSplits().stream().allMatch(s -> s.getTransaction() == saved));
         verify(splitsCache).evict(OWNER_ID + ":" + CATEGORY_ID);
         verify(splitsCache).evict(OWNER_ID + ":" + OTHER_CATEGORY_ID);
         verify(splitsCache, times(2)).evict(any());
     }
 
     @Test
-    void createTransaction_whenCategoryNotFound_throwsResourceNotFoundException_andDoesNotSaveOrEvict() {
-        var request = new TransactionCreateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)), "Supermarket", new BigDecimal("2500.00"));
+    void createTransaction_whenDateIsNotProvided_usesCurrentTimeOfInjectedClock() {
+        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
+        when(transactionMapper.toDto(any(Transaction.class))).thenReturn(dto());
+
+        service.createTransaction(createRequest(null, split("1000.00", CATEGORY_ID)), OWNER_ID);
+
+        var captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertEquals(NOW, captor.getValue().getDateTime());
+    }
+
+    @Test
+    void createTransaction_whenDateIsProvided_keepsItAsEntered() {
+        var enteredByUser = LocalDateTime.of(2026, 9, 15, 8, 30);
+        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
+        when(transactionMapper.toDto(any(Transaction.class))).thenReturn(dto());
+
+        service.createTransaction(createRequest(enteredByUser, split("1000.00", CATEGORY_ID)), OWNER_ID);
+
+        var captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertEquals(enteredByUser, captor.getValue().getDateTime());
+    }
+
+    @Test
+    void createTransaction_whenCategoryRepeatsInSplits_looksItUpOnlyOnce() {
+        var request = new TransactionCreateRequest("Supermarket", new BigDecimal("1000.00"), null,
+                List.of(split("600.00", CATEGORY_ID), split("400.00", CATEGORY_ID)));
+        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
+        when(transactionMapper.toDto(any(Transaction.class))).thenReturn(dto());
+
+        service.createTransaction(request, OWNER_ID);
+
+        verify(categoryRepository, times(1)).findById(CATEGORY_ID);
+    }
+
+    @Test
+    void createTransaction_whenSplitsDoNotSumToAmount_throwsBeforeTouchingDatabase() {
+        var request = createRequest(null, split("100.00", CATEGORY_ID));
+
+        assertThrows(TransactionSplitMismatchException.class, () -> service.createTransaction(request, OWNER_ID));
+
+        verifyNoInteractions(categoryRepository);
+        verify(transactionRepository, never()).save(any());
+        verifyNoInteractions(splitsCache);
+    }
+
+    @Test
+    void createTransaction_whenCategoryNotFound_throwsResourceNotFoundExceptionAndSavesNothing() {
         when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> transactionService.createTransaction(request, OWNER_ID));
+                () -> service.createTransaction(createRequest(null, split("1000.00", CATEGORY_ID)), OWNER_ID));
 
         verify(transactionRepository, never()).save(any());
         verifyNoInteractions(splitsCache);
@@ -123,311 +191,235 @@ class TransactionServiceTest {
 
     @Test
     void createTransaction_whenCategoryBelongsToAnotherUser_throwsInaccessibleResourceException() {
-        var request = new TransactionCreateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)), "Supermarket", new BigDecimal("2500.00"));
         when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(foreignCategory(CATEGORY_ID)));
 
         assertThrows(InaccessibleResourceException.class,
-                () -> transactionService.createTransaction(request, OWNER_ID));
+                () -> service.createTransaction(createRequest(null, split("1000.00", CATEGORY_ID)), OWNER_ID));
 
         verify(transactionRepository, never()).save(any());
-        verifyNoInteractions(splitsCache);
     }
 
     @Test
-    void createTransaction_whenSplitSumDoesNotMatchAmount_throwsTransactionSplitMismatchException() {
-        var request = new TransactionCreateRequest(
-                List.of(splitDto(new BigDecimal("2000.00"), CATEGORY_ID),
-                        splitDto(new BigDecimal("400.00"), CATEGORY_ID)), // 2400 != 2500
-                "Supermarket", new BigDecimal("2500.00"));
-        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
-
-        assertThrows(TransactionSplitMismatchException.class,
-                () -> transactionService.createTransaction(request, OWNER_ID));
-
-        verify(transactionRepository, never()).save(any());
-        verifyNoInteractions(splitsCache);
-    }
-
-    @Test
-    void createTransaction_whenCacheManagerReturnsNullCache_doesNotThrow() {
+    void createTransaction_whenCacheIsNotConfigured_stillSucceeds() {
         when(cacheManager.getCache("splits")).thenReturn(null);
-        var request = new TransactionCreateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)), "Supermarket", new BigDecimal("2500.00"));
         when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
-        when(transactionMapper.toDto(any(Transaction.class)))
-                .thenReturn(new TransactionDto(TRANSACTION_ID, OWNER_ID, request.amount(), request.description(), LocalDateTime.now()));
+        when(transactionMapper.toDto(any(Transaction.class))).thenReturn(dto());
 
-        assertDoesNotThrow(() -> transactionService.createTransaction(request, OWNER_ID));
+        assertEquals(dto(), service.createTransaction(createRequest(null, split("1000.00", CATEGORY_ID)), OWNER_ID));
     }
 
     // ==================== deleteTransactionById ====================
 
     @Test
-    void deleteTransactionById_whenOwned_deletesAndEvictsCacheForOldCategories() {
-        var split1 = TransactionSplit.builder().id(1L).amount(new BigDecimal("2000.00")).category(ownedCategory(CATEGORY_ID)).build();
-        var split2 = TransactionSplit.builder().id(2L).amount(new BigDecimal("500.00")).category(ownedCategory(OTHER_CATEGORY_ID)).build();
-        var existing = Transaction.builder().id(TRANSACTION_ID).userId(OWNER_ID)
-                .splits(new ArrayList<>(List.of(split1, split2))).build();
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existing));
+    void deleteTransactionById_whenOwned_deletesAndEvictsCacheOfItsCategories() {
+        var trans = existingTransaction(OWNER_ID);
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(trans));
 
-        transactionService.deleteTransactionById(TRANSACTION_ID, OWNER_ID);
+        service.deleteTransactionById(TRANSACTION_ID, OWNER_ID);
 
-        verify(transactionRepository).deleteById(TRANSACTION_ID);
+        verify(transactionRepository).delete(trans);
         verify(splitsCache).evict(OWNER_ID + ":" + CATEGORY_ID);
-        verify(splitsCache).evict(OWNER_ID + ":" + OTHER_CATEGORY_ID);
     }
 
     @Test
     void deleteTransactionById_whenNotFound_throwsResourceNotFoundException() {
         when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> transactionService.deleteTransactionById(TRANSACTION_ID, OWNER_ID));
+        assertThrows(ResourceNotFoundException.class, () -> service.deleteTransactionById(TRANSACTION_ID, OWNER_ID));
 
-        verify(transactionRepository, never()).deleteById(any());
-        verifyNoInteractions(splitsCache);
+        verify(transactionRepository, never()).delete(any(Transaction.class));
     }
 
     @Test
     void deleteTransactionById_whenBelongsToAnotherUser_throwsInaccessibleResourceException() {
-        var foreignTransaction = Transaction.builder().id(TRANSACTION_ID).userId(STRANGER_ID).build();
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(foreignTransaction));
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existingTransaction(STRANGER_ID)));
 
-        assertThrows(InaccessibleResourceException.class,
-                () -> transactionService.deleteTransactionById(TRANSACTION_ID, OWNER_ID));
+        assertThrows(InaccessibleResourceException.class, () -> service.deleteTransactionById(TRANSACTION_ID, OWNER_ID));
 
-        verify(transactionRepository, never()).deleteById(any());
-        verifyNoInteractions(splitsCache);
+        verify(transactionRepository, never()).delete(any(Transaction.class));
     }
 
     // ==================== updateTransaction ====================
 
     @Test
-    void updateTransaction_whenValid_updatesFieldsAndEvictsBothOldAndNewCategoryCaches() {
-        var oldSplit = TransactionSplit.builder().id(1L).amount(new BigDecimal("1000.00")).category(ownedCategory(OTHER_CATEGORY_ID)).build();
-        var existing = Transaction.builder()
-                .id(TRANSACTION_ID)
-                .userId(OWNER_ID)
-                .amount(new BigDecimal("1000.00"))
-                .description("Old")
-                .dateTime(LocalDateTime.now().minusDays(1))
-                .splits(new ArrayList<>(List.of(oldSplit)))
-                .build();
-        var request = new TransactionUpdateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)),
-                "New description",
-                new BigDecimal("2500.00"),
-                LocalDateTime.now()
-        );
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existing));
-        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
-        var expectedDto = new TransactionDto(TRANSACTION_ID, OWNER_ID, request.amount(), request.description(), request.dateTime());
-        when(transactionMapper.toDto(existing)).thenReturn(expectedDto);
+    void updateTransaction_whenValid_replacesFieldsAndSplitsAndEvictsOldAndNewCategories() {
+        var trans = existingTransaction(OWNER_ID);
+        var newDate = LocalDateTime.of(2026, 10, 1, 9, 0);
+        var request = new TransactionUpdateRequest("New", new BigDecimal("700.00"), newDate,
+                List.of(split("400.00", OTHER_CATEGORY_ID), split("300.00", OTHER_CATEGORY_ID)));
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(trans));
+        when(categoryRepository.findById(OTHER_CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(OTHER_CATEGORY_ID)));
+        when(transactionMapper.toDto(trans)).thenReturn(dto());
 
-        var result = transactionService.updateTransaction(request, TRANSACTION_ID, OWNER_ID);
+        var result = service.updateTransaction(request, TRANSACTION_ID, OWNER_ID);
 
-        assertEquals(expectedDto, result);
-        assertEquals("New description", existing.getDescription());
-        assertEquals(new BigDecimal("2500.00"), existing.getAmount());
-        assertEquals(1, existing.getSplits().size());
-        verify(transactionRepository).save(existing);
-
-        // и старая категория (была удалена из транзакции), и новая должны быть эвикнуты
-        verify(splitsCache).evict(OWNER_ID + ":" + OTHER_CATEGORY_ID);
+        assertEquals(dto(), result);
+        assertEquals("New", trans.getDescription());
+        assertEquals(new BigDecimal("700.00"), trans.getAmount());
+        assertEquals(newDate, trans.getDateTime());
+        assertEquals(2, trans.getSplits().size());
+        assertTrue(trans.getSplits().stream().allMatch(s -> s.getCategory().getId().equals(OTHER_CATEGORY_ID)));
+        verify(transactionRepository).saveAndFlush(trans);
         verify(splitsCache).evict(OWNER_ID + ":" + CATEGORY_ID);
+        verify(splitsCache).evict(OWNER_ID + ":" + OTHER_CATEGORY_ID);
+    }
+
+    @Test
+    void updateTransaction_whenSplitsDoNotSumToAmount_throwsAndLeavesTransactionUntouched() {
+        var trans = existingTransaction(OWNER_ID);
+        var request = new TransactionUpdateRequest("New", new BigDecimal("700.00"), NOW,
+                List.of(split("100.00", CATEGORY_ID)));
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(trans));
+
+        assertThrows(TransactionSplitMismatchException.class,
+                () -> service.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
+
+        assertEquals("Old", trans.getDescription());
+        assertEquals(1, trans.getSplits().size());
+        verify(transactionRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void updateTransaction_whenNewCategoryBelongsToAnotherUser_throwsAndLeavesTransactionUntouched() {
+        var trans = existingTransaction(OWNER_ID);
+        var request = new TransactionUpdateRequest("New", new BigDecimal("700.00"), NOW,
+                List.of(split("700.00", OTHER_CATEGORY_ID)));
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(trans));
+        when(categoryRepository.findById(OTHER_CATEGORY_ID)).thenReturn(Optional.of(foreignCategory(OTHER_CATEGORY_ID)));
+
+        assertThrows(InaccessibleResourceException.class,
+                () -> service.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
+
+        assertEquals("Old", trans.getDescription());
+        assertEquals(CATEGORY_ID, trans.getSplits().get(0).getCategory().getId());
+        verify(transactionRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void updateTransaction_whenTransactionNotFound_throwsResourceNotFoundException() {
-        var request = new TransactionUpdateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)), "New", new BigDecimal("2500.00"), LocalDateTime.now());
         when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.empty());
+        var request = new TransactionUpdateRequest("New", new BigDecimal("700.00"), NOW, List.of(split("700.00", CATEGORY_ID)));
 
         assertThrows(ResourceNotFoundException.class,
-                () -> transactionService.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
-
-        verify(transactionRepository, never()).save(any());
-        verifyNoInteractions(splitsCache);
+                () -> service.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
     }
 
     @Test
     void updateTransaction_whenTransactionBelongsToAnotherUser_throwsInaccessibleResourceException() {
-        var foreignTransaction = Transaction.builder().id(TRANSACTION_ID).userId(STRANGER_ID)
-                .splits(new ArrayList<>()).build();
-        var request = new TransactionUpdateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)), "New", new BigDecimal("2500.00"), LocalDateTime.now());
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(foreignTransaction));
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existingTransaction(STRANGER_ID)));
+        var request = new TransactionUpdateRequest("New", new BigDecimal("700.00"), NOW, List.of(split("700.00", CATEGORY_ID)));
 
         assertThrows(InaccessibleResourceException.class,
-                () -> transactionService.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
+                () -> service.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
 
-        verify(transactionRepository, never()).save(any());
-        verify(categoryRepository, never()).findById(any());
-    }
-
-    @Test
-    void updateTransaction_whenNewCategoryNotFound_throwsResourceNotFoundException() {
-        var existing = Transaction.builder().id(TRANSACTION_ID).userId(OWNER_ID)
-                .amount(new BigDecimal("1000.00")).description("Old").dateTime(LocalDateTime.now())
-                .splits(new ArrayList<>()).build();
-        var request = new TransactionUpdateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)), "New", new BigDecimal("2500.00"), LocalDateTime.now());
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existing));
-        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class,
-                () -> transactionService.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
-
-        verify(transactionRepository, never()).save(any());
-    }
-
-    @Test
-    void updateTransaction_whenNewCategoryBelongsToAnotherUser_throwsInaccessibleResourceException() {
-        var existing = Transaction.builder().id(TRANSACTION_ID).userId(OWNER_ID)
-                .amount(new BigDecimal("1000.00")).description("Old").dateTime(LocalDateTime.now())
-                .splits(new ArrayList<>()).build();
-        var request = new TransactionUpdateRequest(
-                List.of(splitDto(new BigDecimal("2500.00"), CATEGORY_ID)), "New", new BigDecimal("2500.00"), LocalDateTime.now());
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existing));
-        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(foreignCategory(CATEGORY_ID)));
-
-        assertThrows(InaccessibleResourceException.class,
-                () -> transactionService.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
-
-        verify(transactionRepository, never()).save(any());
-    }
-
-    @Test
-    void updateTransaction_whenSplitSumDoesNotMatchAmount_throwsTransactionSplitMismatchException() {
-        var existing = Transaction.builder().id(TRANSACTION_ID).userId(OWNER_ID)
-                .amount(new BigDecimal("1000.00")).description("Old").dateTime(LocalDateTime.now())
-                .splits(new ArrayList<>()).build();
-        var request = new TransactionUpdateRequest(
-                List.of(splitDto(new BigDecimal("100.00"), CATEGORY_ID)), "New", new BigDecimal("2500.00"), LocalDateTime.now());
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existing));
-        when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(ownedCategory(CATEGORY_ID)));
-
-        assertThrows(TransactionSplitMismatchException.class,
-                () -> transactionService.updateTransaction(request, TRANSACTION_ID, OWNER_ID));
-
-        verify(transactionRepository, never()).save(any());
-        verifyNoInteractions(splitsCache);
+        verify(transactionRepository, never()).saveAndFlush(any());
     }
 
     // ==================== getById ====================
 
     @Test
-    void getById_whenOwned_returnsDto() {
-        var existing = Transaction.builder().id(TRANSACTION_ID).userId(OWNER_ID).build();
-        var expectedDto = new TransactionDto(TRANSACTION_ID, OWNER_ID, BigDecimal.TEN, "desc", LocalDateTime.now());
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existing));
-        when(transactionMapper.toDto(existing)).thenReturn(expectedDto);
+    void getById_whenOwned_returnsMappedDto() {
+        var trans = existingTransaction(OWNER_ID);
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(trans));
+        when(transactionMapper.toDto(trans)).thenReturn(dto());
 
-        assertEquals(expectedDto, transactionService.getById(TRANSACTION_ID, OWNER_ID));
+        assertEquals(dto(), service.getById(TRANSACTION_ID, OWNER_ID));
     }
 
     @Test
     void getById_whenNotFound_throwsResourceNotFoundException() {
         when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> transactionService.getById(TRANSACTION_ID, OWNER_ID));
+        assertThrows(ResourceNotFoundException.class, () -> service.getById(TRANSACTION_ID, OWNER_ID));
     }
 
     @Test
     void getById_whenBelongsToAnotherUser_throwsInaccessibleResourceException() {
-        var foreignTransaction = Transaction.builder().id(TRANSACTION_ID).userId(STRANGER_ID).build();
-        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(foreignTransaction));
+        when(transactionRepository.findById(TRANSACTION_ID)).thenReturn(Optional.of(existingTransaction(STRANGER_ID)));
 
-        assertThrows(InaccessibleResourceException.class,
-                () -> transactionService.getById(TRANSACTION_ID, OWNER_ID));
-    }
-
-    // ==================== getAllTransactionsByUser ====================
-
-    @Test
-    void getAllTransactionsByUser_delegatesToRepositoryAndMapper() {
-        Pageable pageable = Pageable.ofSize(10);
-        Transaction entity = Transaction.builder().id(TRANSACTION_ID).userId(OWNER_ID).build();
-        Page<Transaction> entityPage = new PageImpl<>(List.of(entity));
-        Page<TransactionDto> dtoPage = new PageImpl<>(List.of(
-                new TransactionDto(TRANSACTION_ID, OWNER_ID, BigDecimal.TEN, "desc", LocalDateTime.now())));
-
-        when(transactionRepository.findAllByUserId(OWNER_ID, pageable)).thenReturn(entityPage);
-        when(transactionMapper.toDtoPage(entityPage)).thenReturn(dtoPage);
-
-        assertEquals(dtoPage, transactionService.getAllTransactionsByUser(OWNER_ID, pageable));
-    }
-
-    @Test
-    void getAllTransactionsByUser_whenNoTransactions_returnsEmptyPage() {
-        Pageable pageable = Pageable.ofSize(10);
-        Page<Transaction> emptyEntityPage = new PageImpl<>(List.of());
-        Page<TransactionDto> emptyDtoPage = new PageImpl<>(List.of());
-        when(transactionRepository.findAllByUserId(OWNER_ID, pageable)).thenReturn(emptyEntityPage);
-        when(transactionMapper.toDtoPage(emptyEntityPage)).thenReturn(emptyDtoPage);
-
-        var result = transactionService.getAllTransactionsByUser(OWNER_ID, pageable);
-
-        assertTrue(result.getContent().isEmpty());
+        assertThrows(InaccessibleResourceException.class, () -> service.getById(TRANSACTION_ID, OWNER_ID));
     }
 
     // ==================== getTotalAmountByDateRange ====================
 
     @Test
-    void getTotalAmountByDateRange_delegatesToRepositoryAggregateQuery() {
-        LocalDateTime from = LocalDateTime.now().minusDays(30);
-        LocalDateTime to = LocalDateTime.now();
+    void getTotalAmountByDateRange_returnsSumFromRepository() {
+        var from = LocalDateTime.of(2026, 10, 1, 0, 0);
+        var to = LocalDateTime.of(2026, 10, 31, 23, 59);
         when(transactionRepository.sumAmountByUserIdAndDateTimeBetween(OWNER_ID, from, to))
-                .thenReturn(new BigDecimal("4200.00"));
+                .thenReturn(new BigDecimal("123.45"));
 
-        assertEquals(new BigDecimal("4200.00"), transactionService.getTotalAmountByDateRange(OWNER_ID, from, to));
+        assertEquals(new BigDecimal("123.45"), service.getTotalAmountByDateRange(OWNER_ID, from, to));
     }
 
     @Test
-    void getTotalAmountByDateRange_whenNoTransactions_returnsZero() {
-        LocalDateTime from = LocalDateTime.now().minusDays(30);
-        LocalDateTime to = LocalDateTime.now();
-        when(transactionRepository.sumAmountByUserIdAndDateTimeBetween(OWNER_ID, from, to))
-                .thenReturn(BigDecimal.ZERO);
+    void getTotalAmountByDateRange_whenFromIsAfterTo_throwsInvalidRequestException() {
+        var from = LocalDateTime.of(2026, 10, 31, 0, 0);
+        var to = LocalDateTime.of(2026, 10, 1, 0, 0);
 
-        assertEquals(BigDecimal.ZERO, transactionService.getTotalAmountByDateRange(OWNER_ID, from, to));
+        assertThrows(InvalidRequestException.class, () -> service.getTotalAmountByDateRange(OWNER_ID, from, to));
+
+        verifyNoInteractions(transactionRepository);
     }
 
-    // ==================== getTransactions (Specification-фильтры) ====================
+    // ==================== getTransactions ====================
 
     @Test
-    void getTransactions_withNoFilters_delegatesToRepositoryWithSpecification() {
-        var criteria = new TransactionSearchCriteria(null, null, null, null, null);
-        Pageable pageable = Pageable.ofSize(10);
-        Transaction entity = Transaction.builder().id(TRANSACTION_ID).userId(OWNER_ID).build();
-        Page<Transaction> entityPage = new PageImpl<>(List.of(entity));
-        Page<TransactionDto> dtoPage = new PageImpl<>(List.of(
-                new TransactionDto(TRANSACTION_ID, OWNER_ID, BigDecimal.TEN, "desc", LocalDateTime.now())));
+    @SuppressWarnings("unchecked")
+    void getTransactions_queriesWithSpecificationAndReturnsMappedPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        var trans = existingTransaction(OWNER_ID);
+        var page = new PageImpl<>(List.of(trans), pageable, 1);
+        var mappedPage = new PageImpl<>(List.of(dto()), pageable, 1);
+        when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+        when(transactionMapper.toDtoPage(page)).thenReturn(mappedPage);
 
-        when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(entityPage);
-        when(transactionMapper.toDtoPage(entityPage)).thenReturn(dtoPage);
+        var result = service.getTransactions(OWNER_ID, new TransactionSearchCriteria(), pageable);
 
-        var result = transactionService.getTransactions(OWNER_ID, criteria, pageable);
-
-        assertEquals(dtoPage, result);
-        verify(transactionRepository).findAll(any(Specification.class), eq(pageable));
+        assertEquals(mappedPage, result);
     }
 
     @Test
-    void getTransactions_withAllFiltersSet_delegatesToRepositoryWithSpecification() {
-        var criteria = new TransactionSearchCriteria(CATEGORY_ID, new BigDecimal("100"),
-                new BigDecimal("1000"), LocalDateTime.now().minusDays(30), LocalDateTime.now());
-        Pageable pageable = Pageable.ofSize(10);
-        Page<Transaction> emptyEntityPage = new PageImpl<>(List.of());
-        Page<TransactionDto> emptyDtoPage = new PageImpl<>(List.of());
+    void getTransactions_whenCriteriaAreFullyPopulated_stillQueriesOnce() {
+        Pageable pageable = PageRequest.of(0, 10);
+        var criteria = new TransactionSearchCriteria(CATEGORY_ID, new BigDecimal("10"), new BigDecimal("100"),
+                LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 31, 23, 59));
+        when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of()));
+        when(transactionMapper.toDtoPage(any())).thenReturn(new PageImpl<>(List.of()));
 
-        when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(emptyEntityPage);
-        when(transactionMapper.toDtoPage(emptyEntityPage)).thenReturn(emptyDtoPage);
+        service.getTransactions(OWNER_ID, criteria, pageable);
 
-        var result = transactionService.getTransactions(OWNER_ID, criteria, pageable);
+        verify(transactionRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+    }
 
-        assertTrue(result.getContent().isEmpty());
+    @Test
+    void getTransactions_whenFromIsAfterTo_throwsInvalidRequestException() {
+        var criteria = new TransactionSearchCriteria(null, null, null,
+                LocalDateTime.of(2026, 10, 31, 0, 0), LocalDateTime.of(2026, 10, 1, 0, 0));
+
+        assertThrows(InvalidRequestException.class,
+                () -> service.getTransactions(OWNER_ID, criteria, PageRequest.of(0, 10)));
+
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @Test
+    void getTransactions_whenMinAmountIsGreaterThanMax_throwsInvalidRequestException() {
+        var criteria = new TransactionSearchCriteria(null, new BigDecimal("200"), new BigDecimal("100"), null, null);
+
+        assertThrows(InvalidRequestException.class,
+                () -> service.getTransactions(OWNER_ID, criteria, PageRequest.of(0, 10)));
+
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @Test
+    void getTransactions_whenOnlyOneDateBoundIsGiven_isAllowed() {
+        Pageable pageable = PageRequest.of(0, 10);
+        var criteria = new TransactionSearchCriteria(null, null, null, LocalDateTime.of(2026, 10, 1, 0, 0), null);
+        when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of()));
+        when(transactionMapper.toDtoPage(any())).thenReturn(new PageImpl<>(List.of()));
+
+        assertDoesNotThrow(() -> service.getTransactions(OWNER_ID, criteria, pageable));
     }
 }

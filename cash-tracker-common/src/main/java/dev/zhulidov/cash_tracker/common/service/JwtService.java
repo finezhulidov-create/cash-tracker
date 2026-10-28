@@ -1,15 +1,18 @@
 package dev.zhulidov.cash_tracker.common.service;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 
+@Slf4j
 @Service
 public class JwtService {
     @Value("${jwt.secret}")
@@ -28,6 +31,10 @@ public class JwtService {
                 .compact();
     }
 
+    public long getExpirationSeconds() {
+        return expiration / 1000;
+    }
+
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
     }
@@ -36,8 +43,9 @@ public class JwtService {
         try {
             extractClaims(token);
             return true;
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (JwtException | IllegalArgumentException e) {
+            // сам токен в лог не пишем: он остаётся действующим секретом до истечения срока
+            log.debug("Rejected JWT: {}", e.getMessage());
             return false;
         }
     }

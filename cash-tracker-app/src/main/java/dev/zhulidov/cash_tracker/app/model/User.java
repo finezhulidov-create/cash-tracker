@@ -2,9 +2,9 @@ package dev.zhulidov.cash_tracker.app.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import dev.zhulidov.cash_tracker.transactions.model.Category;
 
-import java.util.List;
+import java.math.BigDecimal;
+
 
 @Entity
 @Getter
@@ -20,6 +20,9 @@ public class User  {
     private Long id;
     @Column(name = "user_name")
     private String name;
+    @Builder.Default
+    @Column(name = "balance", nullable = false)
+    private BigDecimal balance = BigDecimal.ZERO;
     @Column(name = "email", nullable = false, unique = true)
     private String email;
     @Column(name = "password", nullable = false)
