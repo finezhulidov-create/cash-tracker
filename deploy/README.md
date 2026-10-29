@@ -9,7 +9,61 @@
 
 Наружу открыты только порты 80 и 443. База, Redis и бэкенд доступны только внутри Docker-сети. Swagger и `/actuator` Caddy не проксирует, снаружи их нет.
 
-## Что понадобится
+## Домашний сервер без домена (Linux Mint, доступ только из своей сети)
+
+Если приложением пользуются только устройства в вашей домашней сети, домен и HTTPS не нужны: сайт открывается по адресу сервера, например `http://192.168.1.50`. Отличия от варианта с доменом ниже: в `.env` вместо домена пишется `DOMAIN=:80` (так Caddy работает по обычному HTTP, без сертификатов), а установка Docker на Linux Mint идёт через официальный репозиторий Docker (скрипт `get.docker.com` Mint не поддерживает).
+
+**1. Docker.** Mint основан на Ubuntu, поэтому берём репозиторий Ubuntu с его кодовым именем:
+
+```bash
+sudo apt update && sudo apt install -y ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker $USER      # затем перезайдите в сеанс (или перезагрузитесь)
+docker compose version             # должна быть версия 2.x
+```
+
+**2. Постоянный адрес сервера.** Зайдите в настройки роутера и закрепите за сервером один и тот же IP (раздел DHCP, «резервирование адреса» по MAC). Иначе после перезагрузки адрес может смениться, и закладки на телефонах перестанут открываться. Свой адрес: `hostname -I`.
+
+**3. Код и настройка**
+
+```bash
+git clone -b update/feat-002 <адрес-репозитория> cash-tracker
+cd cash-tracker/deploy
+cp .env.example .env
+sed -i "s|^DOMAIN=.*|DOMAIN=:80|"                                   .env
+sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -hex 24)|"      .env
+sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -base64 48)|"     .env
+chmod 600 .env
+```
+
+Порт 80 должен быть свободен: `sudo ss -ltnp | grep ':80 '` ничего не показывает. Если там уже что-то работает (например, apache2), остановите его или задайте другой порт и адрес целиком: `HTTP_PORT=8080` и `CORS_ORIGINS=http://192.168.1.50:8080` в `.env`.
+
+**4. Запуск**
+
+```bash
+docker compose up -d --build       # первая сборка 5–10 минут
+docker compose ps                  # db, redis, app — healthy, web — Up
+```
+
+Откройте с любого устройства в сети `http://IP-сервера`, зарегистрируйтесь. Если попали на «Обзор», всё работает. После перезагрузки сервера контейнеры поднимутся сами.
+
+**Важно для домашней сети**
+
+- **Не пробрасывайте порт 80 на роутере** в интернет: приложение рассчитано на закрытую сеть, а соединение идёт по HTTP, без шифрования. Внутри домашней сети с паролем Wi-Fi это приемлемо, гостевой Wi-Fi лучше держать отдельно.
+- `ufw` порт не закроет: Docker обходит его правила для опубликованных портов. Защита здесь — отсутствие проброса на роутере.
+- Если сервер уходит в спящий режим, сайт перестанет отвечать: отключите автоматический сон в настройках питания Mint.
+- Обновление, резервные копии и «Если что-то не работает» — как в разделах ниже (команды `docker compose` те же). Для HTTPS внутри сети без домена можно настроить собственный сертификат Caddy (`tls internal`), но браузерам придётся доверять ему вручную на каждом устройстве.
+
+Дальше в документе описан вариант с доменом и HTTPS из интернета.
+
+---
+
+## Что понадобится (вариант с доменом)
 
 - Linux-сервер (инструкция для Ubuntu 22.04/24.04), **от 2 ГБ оперативной памяти** (на 1 ГБ добавьте swap, см. ниже) и 5–10 ГБ диска.
 - **Домен**, например `cash.example.com`, с A-записью на IP сервера. Без домена HTTPS не получить: пароль и токен пойдут по сети открытым текстом.
