@@ -1,0 +1,89 @@
+# Боевой запуск: PostgreSQL + Redis + бэкенд (профиль prod) + Caddy с фронтендом и HTTPS.
+# Из этой папки:  cp .env.example .env  →  заполнить  →  docker compose up -d --build
+name: cash-tracker-prod
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: expense_tracker
+      POSTGRES_USER: cashtracker
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в deploy/.env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cashtracker -d expense_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Redis хранит только кэш и счётчики лимита запросов, поэтому без тома: после перезапуска всё пересоздаётся само
+  redis:
+    image: redis:8.8.0-alpine3.23
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/expense_tracker
+      SPRING_DATASOURCE_USERNAME: cashtracker
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      # base64-строка от 32 байт. Ключ проверяется лениво: при неверном формате приложение стартует,
+      # а регистрация и вход отвечают 500 (проверьте регистрацией сразу после запуска)
+      JWT_SECRET: ${JWT_SECRET:?Задайте JWT_SECRET в deploy/.env}
+      # Реальный IP клиента из X-Forwarded-For (его ставит Caddy) — иначе лимит запросов на /auth
+      # считался бы по адресу прокси и был бы общим на всех
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      # Фронтенд и API на одном домене. Браузер всё равно шлёт заголовок Origin, а бэкенд за прокси может
+      # не распознать запрос как «свой» (например, при нестандартном порту), поэтому адрес сайта указан явно.
+      # Нестандартный порт или несколько адресов: задайте CORS_ORIGINS в .env (через запятую)
+      APP_CORS_ALLOWED_ORIGINS: ${CORS_ORIGINS:-https://${DOMAIN}}
+      # Документация API наружу не нужна (Caddy её и не проксирует)
+      SPRINGDOC_API_DOCS_ENABLED: "false"
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?Задайте DOMAIN в deploy/.env}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      # Сертификаты и ключи Caddy: без тома они потеряются при пересоздании контейнера
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,10 @@
+# В образы попадает только то, что нужно сборке; иначе Docker отправляет демону весь репозиторий
+.git
+.idea
+.claude
+.github
+**/target
+**/node_modules
+frontend/dist
+frontend/design_handoff_cash_tracker
+deploy/.env

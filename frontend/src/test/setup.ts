@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 import { reloadSessionFromStorage } from '../auth/authStore'
 import { server } from './server'
+
+// Запас по времени для медленных CI-раннеров: Chakra в jsdom и набор текста по буквам заметно тормозят
+configure({ asyncUtilTimeout: 4000 })
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 
