@@ -383,7 +383,7 @@ class TransactionServiceTest {
     void getTransactions_whenCriteriaAreFullyPopulated_stillQueriesOnce() {
         Pageable pageable = PageRequest.of(0, 10);
         var criteria = new TransactionSearchCriteria(CATEGORY_ID, new BigDecimal("10"), new BigDecimal("100"),
-                LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 31, 23, 59));
+                LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 31, 23, 59), "market");
         when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of()));
         when(transactionMapper.toDtoPage(any())).thenReturn(new PageImpl<>(List.of()));
 
@@ -395,7 +395,7 @@ class TransactionServiceTest {
     @Test
     void getTransactions_whenFromIsAfterTo_throwsInvalidRequestException() {
         var criteria = new TransactionSearchCriteria(null, null, null,
-                LocalDateTime.of(2026, 10, 31, 0, 0), LocalDateTime.of(2026, 10, 1, 0, 0));
+                LocalDateTime.of(2026, 10, 31, 0, 0), LocalDateTime.of(2026, 10, 1, 0, 0), null);
 
         assertThrows(InvalidRequestException.class,
                 () -> service.getTransactions(OWNER_ID, criteria, PageRequest.of(0, 10)));
@@ -405,7 +405,7 @@ class TransactionServiceTest {
 
     @Test
     void getTransactions_whenMinAmountIsGreaterThanMax_throwsInvalidRequestException() {
-        var criteria = new TransactionSearchCriteria(null, new BigDecimal("200"), new BigDecimal("100"), null, null);
+        var criteria = new TransactionSearchCriteria(null, new BigDecimal("200"), new BigDecimal("100"), null, null, null);
 
         assertThrows(InvalidRequestException.class,
                 () -> service.getTransactions(OWNER_ID, criteria, PageRequest.of(0, 10)));
@@ -416,7 +416,29 @@ class TransactionServiceTest {
     @Test
     void getTransactions_whenOnlyOneDateBoundIsGiven_isAllowed() {
         Pageable pageable = PageRequest.of(0, 10);
-        var criteria = new TransactionSearchCriteria(null, null, null, LocalDateTime.of(2026, 10, 1, 0, 0), null);
+        var criteria = new TransactionSearchCriteria(null, null, null, LocalDateTime.of(2026, 10, 1, 0, 0), null, null);
+        when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of()));
+        when(transactionMapper.toDtoPage(any())).thenReturn(new PageImpl<>(List.of()));
+
+        assertDoesNotThrow(() -> service.getTransactions(OWNER_ID, criteria, pageable));
+    }
+
+    @Test
+    void getTransactions_whenSearchTextIsTooLong_throwsInvalidRequestException() {
+        var criteria = new TransactionSearchCriteria();
+        criteria.setQ("a".repeat(256));
+
+        assertThrows(InvalidRequestException.class,
+                () -> service.getTransactions(OWNER_ID, criteria, PageRequest.of(0, 10)));
+
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @Test
+    void getTransactions_whenSearchTextHasMaxLength_isAllowed() {
+        Pageable pageable = PageRequest.of(0, 10);
+        var criteria = new TransactionSearchCriteria();
+        criteria.setQ("a".repeat(255));
         when(transactionRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of()));
         when(transactionMapper.toDtoPage(any())).thenReturn(new PageImpl<>(List.of()));
 

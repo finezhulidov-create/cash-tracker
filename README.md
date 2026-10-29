@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/finezhulidov-create/cash-tracker/actions/workflows/ci.yml/badge.svg)
 
-Backend личного трекера финансов на Spring Boot. Пользователь ведёт **категории**, добавляет **траты** (одну трату можно разбить на несколько категорий: чек из супермаркета → «Еда» + «Быт»), задаёт **месячные бюджеты** и видит **остаток** и **аналитику** для дашборда.
+Личный трекер финансов: backend на Spring Boot и веб-клиент на React (папка [`frontend/`](frontend/README.md)). Пользователь ведёт **категории**, добавляет **траты** (одну трату можно разбить на несколько категорий: чек из супермаркета → «Еда» + «Быт»), задаёт **месячные бюджеты** и видит **остаток** и **аналитику** для дашборда.
 
 ## Возможности
 
@@ -10,6 +10,7 @@ Backend личного трекера финансов на Spring Boot. Пол�
 - Категории пользователя, список кэшируется в Redis.
 - Траты с разбивкой на части по категориям; сумма частей обязана равняться сумме траты. Дату можно указать вручную (внести трату задним числом).
 - Бюджеты на месяц: **по категории** или **общий** (без категории, считает все траты месяца). Остаток всегда считается из трат при запросе, а не хранится.
+- Поиск по описанию траты (параметр `q`, без учёта регистра) и фильтры по категории, сумме и датам.
 - Аналитика: траты по категориям за период, динамика по месяцам года, сводка месяца (все траты, общий бюджет и бюджеты категорий с остатками).
 - Баланс пользователя: поле, которое пользователь задаёт сам; от трат не меняется.
 - Данные каждого пользователя изолированы: чужой ресурс отвечает 404, как будто его нет.
@@ -26,6 +27,7 @@ Backend личного трекера финансов на Spring Boot. Пол�
 | Документация | springdoc-openapi (Swagger UI) |
 | Эксплуатация | Spring Boot Actuator, Docker, Docker Compose |
 | Тесты | JUnit 5, Mockito, Testcontainers, JaCoCo |
+| Веб-клиент | React 19, TypeScript, Vite, Chakra UI v3, TanStack Query, React Router; тесты Vitest, Testing Library, MSW |
 | CI | GitHub Actions |
 
 ## Архитектура
@@ -34,8 +36,9 @@ Backend личного трекера финансов на Spring Boot. Пол�
 cash-tracker/
 ├── cash-tracker-common/         # JWT, обработка ошибок, исключения, утилиты
 ├── cash-tracker-transactions/   # домен: категории, траты со сплитами, бюджеты, аналитика
-└── cash-tracker-app/            # запускаемое приложение: пользователи, авторизация, безопасность,
-                                 # конфигурация Redis/CORS/Swagger, миграции Liquibase
+├── cash-tracker-app/            # запускаемое приложение: пользователи, авторизация, безопасность,
+│                                # конфигурация Redis/CORS/Swagger, миграции Liquibase
+└── frontend/                    # веб-клиент (React + TypeScript + Vite), отдельный npm-проект
 ```
 
 `app` зависит от `transactions` и `common`, `transactions` от `common`; обратных зависимостей нет. Домен трат знает пользователя только по `userId`.
@@ -73,6 +76,16 @@ docker compose up --build
 mvn spring-boot:run -pl cash-tracker-app -am -Dspring-boot.run.profiles=dev
 ```
 
+Веб-клиент (нужен Node.js 22.12+; бэкенд уже запущен):
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+Подробности, настройка адреса API и сборка для продакшена: [frontend/README.md](frontend/README.md).
+
 ## Как работать с API
 
 Все запросы, кроме `/auth/**`, Swagger и Actuator, требуют заголовок `Authorization: Bearer <токен>`. Токен приходит в ответах `POST /auth/register` и `POST /auth/login`:
@@ -95,7 +108,7 @@ mvn spring-boot:run -pl cash-tracker-app -am -Dspring-boot.run.profiles=dev
 | Категории | `POST/GET/PUT/DELETE /v1/categories[/{id}]`, `GET /v1/categories/mine` | CRUD, список. Удаление категории с тратами: 409 |
 | | `GET /v1/categories/{id}/splits` | Части трат в категории |
 | Траты | `POST /v1/transactions` | Создать трату с разбивкой |
-| | `GET /v1/transactions` | Список: фильтры `categoryId`, `minAmount`, `maxAmount`, `from`, `to`, пагинация, сортировка |
+| | `GET /v1/transactions` | Список: поиск `q` по описанию, фильтры `categoryId`, `minAmount`, `maxAmount`, `from`, `to`, пагинация, сортировка |
 | | `GET/PUT/DELETE /v1/transactions/{id}` | Одна трата |
 | | `GET /v1/transactions/total?from&to` | Сумма за период |
 | Бюджеты | `POST /v1/budgets` | Создать (с `categoryId` или общий) |
@@ -154,7 +167,7 @@ mvn spring-boot:run -pl cash-tracker-app -am -Dspring-boot.run.profiles=dev
 
 ### Для фронтенда
 
-- **Вход.** Токен лучше держать в памяти приложения или `sessionStorage`; он передаётся заголовком, cookie и CSRF не используются. При 401 направляйте пользователя на экран входа.
+- **Вход.** Токен передаётся заголовком, cookie и CSRF не используются. При 401 направляйте пользователя на экран входа. Клиент из `frontend/` хранит токен в `localStorage`: это просто, но любой XSS его прочитает, поэтому в продакшене нужна строгая CSP и никаких сторонних скриптов; безопаснее было бы перейти на httpOnly-cookie с refresh-токеном (бэкенд пока этого не умеет).
 - **CORS.** Разрешённые адреса задаются в `app.cors.allowed-origins` (по умолчанию `http://localhost:3000` и `http://localhost:5173`).
 - **Лимит.** При 429 ответ содержит заголовок `Retry-After` (секунды); он доступен браузеру (`Access-Control-Expose-Headers`).
 - **Деньги** приходят десятичными числами, из базы до 4 знаков после запятой (`1000.0000`). Не используйте float для расчётов, форматируйте сумму при отображении.
@@ -193,9 +206,11 @@ mvn test -DexcludedGroups=integration   # только быстрые тесты
 - **Интеграционные тесты** (`@Tag("integration")`, Testcontainers): настоящие PostgreSQL и Redis, полная цепочка безопасности, миграции Liquibase, сквозные сценарии API, кэш, рейт-лимит, Actuator, OpenAPI. Требуют запущенного Docker.
 - **Покрытие (JaCoCo).** После `mvn verify`: `cash-tracker-app/target/site/jacoco-aggregate/index.html` (модули `common` и `transactions`) и `cash-tracker-app/target/site/jacoco/index.html` (классы `app`). Сгенерированные MapStruct-мапперы в отчёт не входят.
 
+Тесты веб-клиента: `cd frontend && npm test` (Vitest + Testing Library + MSW, сеть мокается на уровне HTTP, бэкенд не нужен).
+
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) на каждый push и pull request: `mvn verify` со всеми интеграционными тестами, публикация отчёта покрытия, отдельная проверка сборки Docker-образа.
+GitHub Actions (`.github/workflows/ci.yml`) на каждый push и pull request: `mvn verify` со всеми интеграционными тестами, публикация отчёта покрытия, отдельная проверка сборки Docker-образа и отдельный job веб-клиента (проверка типов, линтер, тесты, сборка).
 
 ## Известные ограничения
 

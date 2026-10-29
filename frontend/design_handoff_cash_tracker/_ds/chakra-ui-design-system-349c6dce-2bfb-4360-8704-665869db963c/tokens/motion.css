@@ -1,0 +1,26 @@
+/* Motion — tokens/durations.ts, easings.ts, keyframes.ts */
+:root {
+  --duration-fastest: 50ms; /* @kind other */
+  --duration-faster: 100ms; /* @kind other */
+  --duration-fast: 150ms; /* @kind other */
+  --duration-moderate: 200ms; /* @kind other */
+  --duration-slow: 300ms; /* @kind other */
+  --duration-slower: 400ms; /* @kind other */
+  --duration-slowest: 500ms; /* @kind other */
+
+  --ease-in: cubic-bezier(0.42, 0, 1, 1); /* @kind other */
+  --ease-out: cubic-bezier(0, 0, 0.58, 1); /* @kind other */
+  --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1); /* @kind other */
+  --ease-in-smooth: cubic-bezier(0.32, 0.72, 0, 1); /* @kind other */
+  /* Toast enter curve (recipes/toast.ts) */
+  --ease-toast: cubic-bezier(0.21, 1.02, 0.73, 1); /* @kind other */
+}
+@keyframes chakra-spin { to { transform: rotate(360deg); } }
+@keyframes chakra-pulse { 50% { opacity: 0.5; } }
+@keyframes chakra-bg-position { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes chakra-position { from { left: -40%; } to { left: 100%; } }
+@keyframes chakra-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes chakra-scale-in { from { transform: scale(0.95); } to { transform: scale(1); } }
+@keyframes chakra-slide-from-top { from { transform: translateY(-0.5rem); } to { transform: translateY(0); } }
+@keyframes chakra-slide-from-bottom { from { transform: translateY(0.5rem); } to { transform: translateY(0); } }
+@keyframes chakra-slide-from-right { from { transform: translateX(100%); } to { transform: translateX(0); } }

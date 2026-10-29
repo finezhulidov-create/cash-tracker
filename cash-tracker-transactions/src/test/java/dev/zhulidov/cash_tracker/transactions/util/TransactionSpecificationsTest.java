@@ -24,6 +24,13 @@ class TransactionSpecificationsTest {
     }
 
     @Test
+    void descriptionContains_whenNullOrBlank_returnsNullSpecification() {
+        assertNull(TransactionSpecifications.descriptionContains(null));
+        assertNull(TransactionSpecifications.descriptionContains(""));
+        assertNull(TransactionSpecifications.descriptionContains("   "));
+    }
+
+    @Test
     void dateBetween_whenBothBoundsAreNull_returnsNullSpecification() {
         assertNull(TransactionSpecifications.dateBetween(null, null));
     }
@@ -53,5 +60,6 @@ class TransactionSpecificationsTest {
         assertNotNull(TransactionSpecifications.hasCategoryId(1L));
         assertNotNull(TransactionSpecifications.amountBetween(BigDecimal.ONE, null));
         assertNotNull(TransactionSpecifications.dateBetween(LocalDateTime.now(), LocalDateTime.now()));
+        assertNotNull(TransactionSpecifications.descriptionContains("market"));
     }
 }

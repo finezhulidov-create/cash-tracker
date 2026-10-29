@@ -1,0 +1,12 @@
+/* Global CSS — theme/global-css.ts */
+html { color: var(--fg); background: var(--bg); line-height: 1.5; font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+* { font-feature-settings: "cv11"; box-sizing: border-box; }
+*::placeholder { color: color-mix(in srgb, var(--fg-muted) 80%, transparent); }
+*::selection { background: color-mix(in srgb, var(--gray-emphasized) 80%, transparent); }
+body { margin: 0; }
+a { color: var(--fg); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 20%, transparent); }
+/* focusVisibleRing="outside" — 2px solid ring, 2px offset, palette focusRing colour */
+.chakra-focus-ring:focus-visible { outline: 2px solid var(--cp-focus-ring, var(--gray-focus-ring)); outline-offset: 2px; }
+.chakra-focus-ring-inside:focus-visible { outline: 1px solid var(--cp-focus-ring, var(--gray-focus-ring)); outline-offset: 0; border-color: var(--cp-focus-ring, var(--gray-focus-ring)) !important; }
+.dark { color-scheme: dark; color: var(--fg); }
