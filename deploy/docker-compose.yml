@@ -57,7 +57,15 @@ services:
       # Документация API наружу не нужна (Caddy её и не проксирует)
       SPRINGDOC_API_DOCS_ENABLED: "false"
       SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      # ИИ-советник (GigaChat) необязателен и по умолчанию выключен. Включение и ключ — в .env,
+      # подробности в разделе «ИИ-советник» файла deploy/README.md
+      GIGACHAT_ENABLED: ${GIGACHAT_ENABLED:-false}
+      GIGACHAT_AUTH_KEY: ${GIGACHAT_AUTH_KEY:-}
+      GIGACHAT_CA_CERT_PATH: ${GIGACHAT_CA_CERT_PATH:-}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
+    volumes:
+      # Корневые сертификаты Минцифры для ИИ-советника (файлы кладутся в deploy/certs/, только чтение)
+      - ./certs:/certs:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s

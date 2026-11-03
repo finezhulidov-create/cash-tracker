@@ -15,6 +15,7 @@ import { formatPeriod, monthName } from '../../lib/dates'
 import type { DonutSegment } from '../../lib/donut'
 import { formatCompact, formatMoney } from '../../lib/money'
 import { buildYearBars, yearStats } from '../../lib/yearBars'
+import { AiAdvisorCard } from './AiAdvisorCard'
 import type { Preset } from './range'
 import { isPreset, MIN_YEAR, PRESETS, presetRange } from './range'
 
@@ -24,6 +25,7 @@ export function AnalyticsPage() {
     <Stack gap="4">
       <ByCategoryCard today={today} />
       <ByMonthCard today={today} />
+      <AiAdvisorCard today={today} />
     </Stack>
   )
 }

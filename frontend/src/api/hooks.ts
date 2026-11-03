@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { monthDateTimeRange } from '../lib/dates'
 import {
+  aiApi,
   analyticsApi,
   budgetsApi,
   categoriesApi,
@@ -26,6 +27,7 @@ export const keys = {
   summary: (yearMonth: string) => ['analytics', 'summary', yearMonth] as const,
   byCategory: (from: string, to: string) => ['analytics', 'by-category', from, to] as const,
   monthly: (year: number) => ['analytics', 'monthly', year] as const,
+  aiStatus: ['ai', 'status'] as const,
 }
 
 // ---------- профиль ----------
@@ -200,5 +202,25 @@ export function useMonthlySpending(year: number) {
   return useQuery({
     queryKey: keys.monthly(year),
     queryFn: () => analyticsApi.monthly(year),
+  })
+}
+
+// ---------- ИИ-советник ----------
+
+/** Включён ли советник на сервере: настройка меняется только перезапуском, поэтому смотрим редко. */
+export function useAiStatus() {
+  return useQuery({
+    queryKey: keys.aiStatus,
+    queryFn: aiApi.status,
+    staleTime: 10 * 60_000,
+    select: (status) => status.enabled,
+  })
+}
+
+/** Анализ месяца. Это POST, но не изменение данных: сервер сам кэширует и считает лимит. */
+export function useAiAdvice() {
+  return useMutation({
+    mutationFn: ({ yearMonth, signal }: { yearMonth: string; signal?: AbortSignal }) =>
+      aiApi.advice(yearMonth, signal),
   })
 }

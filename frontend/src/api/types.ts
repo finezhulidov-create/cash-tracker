@@ -129,6 +129,19 @@ export interface UpdateBudgetRequest {
   period: string
 }
 
+export interface AiStatusResponse {
+  enabled: boolean
+}
+
+export interface AiAdviceResponse {
+  /** Ответ модели в формате markdown */
+  text: string
+  /** Момент формирования, ISO-8601 в UTC: «2026-10-31T10:05:00Z» */
+  generatedAt: string
+  /** Взят из кэша — к модели запрос не уходил */
+  cached: boolean
+}
+
 export interface ErrorResponse {
   status: number
   message: string

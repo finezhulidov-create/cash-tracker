@@ -136,6 +136,13 @@ function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
+/** Момент времени (ISO-8601 с «Z» или смещением) → «31 октября, 15:05» по местному времени. */
+export function formatInstant(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}, ${toTimeString(d)}`
+}
+
 /** «28 окт» — дата справа в строке операции. */
 export function formatShortDate(dateTime: string): string {
   const d = parseLocalDateTime(dateTime)

@@ -1,5 +1,7 @@
 import { request } from './client'
 import type {
+  AiAdviceResponse,
+  AiStatusResponse,
   BudgetDto,
   CategoryDto,
   CategorySpendingDto,
@@ -68,6 +70,14 @@ export const budgetsApi = {
   update: (id: number, body: UpdateBudgetRequest) =>
     request<BudgetDto>(`/v1/budgets/${id}`, { method: 'PUT', body }),
   remove: (id: number) => request<void>(`/v1/budgets/${id}`, { method: 'DELETE' }),
+}
+
+export const aiApi = {
+  /** Включён ли ИИ-советник на сервере. */
+  status: () => request<AiStatusResponse>('/v1/ai/status'),
+  /** Ответ модели идёт до минуты и дольше, поэтому запрос можно отменить через signal. */
+  advice: (yearMonth: string, signal?: AbortSignal) =>
+    request<AiAdviceResponse>('/v1/ai/advice', { method: 'POST', body: { yearMonth }, signal }),
 }
 
 export const analyticsApi = {

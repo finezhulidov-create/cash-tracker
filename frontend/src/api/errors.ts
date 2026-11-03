@@ -1,4 +1,14 @@
+import { plural } from '../lib/plural'
 import { ApiError } from './client'
+
+/** «через минуту» / «через 25 минут» / «через 2 часа» — по заголовку Retry-After. */
+function waitHint(seconds?: number): string {
+  if (!seconds || seconds <= 60) return 'через минуту'
+  const minutes = Math.ceil(seconds / 60)
+  if (minutes < 60) return `через ${minutes} ${plural(minutes, ['минуту', 'минуты', 'минут'])}`
+  const hours = Math.ceil(minutes / 60)
+  return `через ${hours} ${plural(hours, ['час', 'часа', 'часов'])}`
+}
 
 /** Понятный пользователю текст ошибки на русском. */
 export function errorMessage(error: unknown): string {
@@ -19,6 +29,20 @@ export function errorMessage(error: unknown): string {
       return 'Сумма частей должна совпадать с суммой траты'
     case 'CATEGORY_IN_USE':
       return 'К категории привязаны траты — удалить её нельзя'
+    case 'AI_DISABLED':
+      return 'ИИ-советник не настроен на этом сервере'
+    case 'AI_BUSY':
+      return `Модель сейчас отвечает на другой запрос. Попробуйте ${waitHint(error.retryAfter)}.`
+    case 'AI_RATE_LIMIT_EXCEEDED':
+      return `Лимит анализов исчерпан. Новый можно запросить ${waitHint(error.retryAfter)}.`
+    case 'AI_UNAVAILABLE':
+      return 'Сервис ИИ временно недоступен. Попробуйте позже.'
+    case 'AI_AUTH_FAILED':
+      return 'Сервер не смог войти в сервис ИИ. Администратору нужно проверить ключ.'
+    case 'AI_QUOTA_EXHAUSTED':
+      return 'У сервиса ИИ закончились токены. Сообщите администратору.'
+    case 'AI_BAD_RESPONSE':
+      return 'Модель вернула непригодный ответ. Попробуйте ещё раз.'
   }
 
   if (error.status === 429) return 'Слишком много попыток, попробуйте через минуту'
