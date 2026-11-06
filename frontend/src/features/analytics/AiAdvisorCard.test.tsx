@@ -46,6 +46,11 @@ async function openCard() {
   return view
 }
 
+async function closeDialog() {
+  await userEvent.click(screen.getAllByRole('button', { name: 'Закрыть' })[0]!)
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+}
+
 describe('AiAdvisorCard — switched off', () => {
   it('is not shown when the server has the advisor disabled', async () => {
     aiEnabled(false)
@@ -84,6 +89,8 @@ describe('AiAdvisorCard — analysis', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Получить анализ/ }))
 
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveTextContent('ИИ-советник · Октябрь 2026')
     expect(await screen.findByRole('heading', { name: '📊 Итог месяца' })).toBeInTheDocument()
     expect(screen.getByText('12 000 ₽').tagName).toBe('STRONG')
     expect(screen.getByText(/Сформировано \d{1,2} октября, \d{2}:\d{2}/)).toBeInTheDocument()
@@ -119,12 +126,12 @@ describe('AiAdvisorCard — analysis', () => {
     await userEvent.click(screen.getByRole('button', { name: /Получить анализ/ }))
 
     expect(await screen.findByText('Модель анализирует траты…')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Получить анализ/ })).not.toBeInTheDocument()
     // пока идёт запрос, месяц менять нельзя
-    expect(screen.getByRole('button', { name: 'Предыдущий месяц для анализа' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Предыдущий месяц для анализа', hidden: true })).toBeDisabled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Отменить' }))
 
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(screen.queryByText('Модель анализирует траты…')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Получить анализ/ })).toBeEnabled()
     expect(screen.queryByText('Не удалось получить анализ')).not.toBeInTheDocument()
@@ -148,14 +155,16 @@ describe('AiAdvisorCard — months', () => {
     await openCard()
     await userEvent.click(screen.getByRole('button', { name: /Получить анализ/ }))
     await screen.findByRole('heading', { name: '📊 Итог месяца' })
+    await closeDialog()
 
     await userEvent.click(screen.getByRole('button', { name: 'Предыдущий месяц для анализа' }))
     // у сентября своего анализа ещё нет
-    expect(screen.queryByRole('heading', { name: '📊 Итог месяца' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Получить анализ/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Открыть анализ/ })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Следующий месяц для анализа' }))
-    expect(screen.getByRole('heading', { name: '📊 Итог месяца' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Открыть анализ/ }))
+    expect(await screen.findByRole('heading', { name: '📊 Итог месяца' })).toBeInTheDocument()
     expect(asked).toEqual(['2026-10'])
   })
 
@@ -234,6 +243,7 @@ describe('AiAdvisorCard — errors', () => {
     await openCard()
     await userEvent.click(screen.getByRole('button', { name: /Получить анализ/ }))
     await screen.findByText('Не удалось получить анализ')
+    await closeDialog()
 
     await userEvent.click(screen.getByRole('button', { name: 'Предыдущий месяц для анализа' }))
 
