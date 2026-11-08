@@ -62,6 +62,8 @@ services:
       GIGACHAT_ENABLED: ${GIGACHAT_ENABLED:-false}
       GIGACHAT_AUTH_KEY: ${GIGACHAT_AUTH_KEY:-}
       GIGACHAT_CA_CERT_PATH: ${GIGACHAT_CA_CERT_PATH:-}
+      LMS_API_KEY: ${LMS_API_KEY}
+      LMS_API_URL: ${LMS_API_URL}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
     volumes:
       # Корневые сертификаты Минцифры для ИИ-советника (файлы кладутся в deploy/certs/, только чтение)

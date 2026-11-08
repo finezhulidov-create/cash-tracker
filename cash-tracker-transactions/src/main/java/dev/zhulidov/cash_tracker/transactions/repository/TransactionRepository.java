@@ -1,5 +1,6 @@
 package dev.zhulidov.cash_tracker.transactions.repository;
 
+import dev.zhulidov.cash_tracker.transactions.model.ExistingTx;
 import dev.zhulidov.cash_tracker.transactions.model.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -39,6 +40,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
+    @Query("select t.dateTime as dateTime, t.amount as amount from Transaction t " +
+            "where t.userId = :userId and t.dateTime >= :from and t.dateTime < :to")
+    List<ExistingTx> findForDedup(@Param("userId") Long userId,@Param("from") LocalDateTime from,@Param("to") LocalDateTime to);
 
     interface MonthlyTotal {
         Integer getMonthNumber();

@@ -15,11 +15,38 @@
     <description>Домен транзакций: Transaction, TransactionSplit, Category, Budget</description>
     <properties>
         <mapstruct.version>1.6.3</mapstruct.version>
+        <spring-ai.version>1.1.8</spring-ai.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <!-- LM Studio говорит на OpenAI-совместимом API, поэтому берём OpenAI-стартер -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
         <dependency>
             <groupId>dev.zhulidov</groupId>
             <artifactId>cash-tracker-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
