@@ -78,9 +78,13 @@ class RepositoriesIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Transaction transaction(User owner, LocalDateTime when, Split... splits) {
+        return transaction(owner, when, "tx", splits);
+    }
+
+    private Transaction transaction(User owner, LocalDateTime when, String description, Split... splits) {
         BigDecimal total = Arrays.stream(splits).map(s -> new BigDecimal(s.amount()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        var tx = Transaction.builder().userId(owner.getId()).amount(total).description("tx").dateTime(when).build();
+        var tx = Transaction.builder().userId(owner.getId()).amount(total).description(description).dateTime(when).build();
         tx.setSplits(new ArrayList<>(Arrays.stream(splits).map(s -> TransactionSplit.builder()
                 .transaction(tx).category(s.category()).amount(new BigDecimal(s.amount())).build()).toList()));
         return transactionRepository.saveAndFlush(tx);
@@ -224,6 +228,36 @@ class RepositoriesIntegrationTest extends AbstractIntegrationTest {
         assertEquals(3, count(byOwner.and(TransactionSpecifications.hasCategoryId(null))
                 .and(TransactionSpecifications.amountBetween(null, null))
                 .and(TransactionSpecifications.dateBetween(null, null))));
+    }
+
+    @Test
+    void specifications_filterByDescriptionIgnoringCaseAndTreatingLikeWildcardsAsText() {
+        var owner = user();
+        var stranger = user();
+        var a = category(owner, "A");
+        var c = category(stranger, "C");
+        var when = LocalDateTime.of(2026, 10, 5, 10, 0);
+        transaction(owner, when, "Супермаркет Лента", new Split(a, "10.00"));
+        transaction(owner, when, "МАГАЗИН у дома", new Split(a, "20.00"));
+        transaction(owner, when, "Скидка 50% на всё", new Split(a, "30.00"));
+        transaction(owner, when, "file_name", new Split(a, "40.00"));
+        transaction(owner, when, "fileXname", new Split(a, "50.00"));
+        transaction(stranger, when, "Супермаркет чужой", new Split(c, "60.00"));
+        var byOwner = TransactionSpecifications.hasUserId(owner.getId());
+
+        // регистр не важен, в том числе для кириллицы; подстрока ищется в любом месте
+        assertEquals(1, count(byOwner.and(TransactionSpecifications.descriptionContains("супермаркет"))));
+        assertEquals(1, count(byOwner.and(TransactionSpecifications.descriptionContains("МАГАЗИН"))));
+        assertEquals(1, count(byOwner.and(TransactionSpecifications.descriptionContains("  дома "))));
+
+        // % и _ ищутся как обычные символы, а не как подстановки LIKE
+        assertEquals(1, count(byOwner.and(TransactionSpecifications.descriptionContains("50%"))));
+        assertEquals(1, count(byOwner.and(TransactionSpecifications.descriptionContains("e_n"))));
+        assertEquals(0, count(byOwner.and(TransactionSpecifications.descriptionContains("%%%%"))));
+
+        // пустой запрос фильтр не включает, чужие траты не видны
+        assertEquals(5, count(byOwner.and(TransactionSpecifications.descriptionContains(" "))));
+        assertEquals(0, count(byOwner.and(TransactionSpecifications.descriptionContains("чужой"))));
     }
 
     @Test

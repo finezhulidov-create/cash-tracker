@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>Cash Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/colors-base.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/colors-semantic.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/radii-shadows.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/motion.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/tokens/base.css">
+  <link rel="stylesheet" href="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/styles.css">
+  <script src="_ds/chakra-ui-design-system-349c6dce-2bfb-4360-8704-665869db963c/_ds_bundle.js"></script>
+  <style>
+    html, body { margin: 0; background: var(--bg); overflow-x: hidden; }
+    a { color: var(--fg); } a:hover { color: var(--fg); }
+    @keyframes ct-flow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+    @keyframes ct-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+  </style>
+</helmet>
+<div style="min-height:100vh; background:{{ stageBg }}; display:flex; justify-content:center; align-items:flex-start; padding:{{ stagePad }}; box-sizing:border-box">
+<div ref="{{ rootRef }}" style="position:relative; width:{{ frameW }}; height:{{ frameH }}; flex-shrink:0; transform:{{ frameTf }}; overflow:{{ frameOv }}; border-radius:{{ frameR }}; box-shadow:{{ frameShadow }}; background:var(--bg); color:var(--fg); font-family:var(--font-body); isolation:isolate">
+<div ref="{{ scrollRef }}" style="position:relative; height:{{ scrollH }}; overflow:{{ scrollOv }}; scrollbar-width:{{ scrollbarW }}">
+  {{ ambient }}
+
+  <sc-if value="{{ showAuth }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Вход" style="position:relative; z-index:1; min-height:{{ vh }}; display:flex; flex-direction:{{ authDir }}">
+      <div style="position:relative; flex:{{ authPanelFlex }}; min-height:{{ authPanelMinH }}; overflow:hidden; color:{{ heroFg }}; display:flex; flex-direction:column; justify-content:space-between; gap:32px; padding:{{ authPanelPad }}">
+        {{ authHolo }}
+        <div style="position:relative; z-index:1; display:flex; align-items:center; gap:10px">
+          <div style="width:32px; height:32px; border-radius:var(--radius-l3); background:{{ logoBg }}; display:flex; align-items:center; justify-content:center">
+            <span style="width:18px; height:18px; background:{{ logoInk }}; -webkit-mask:url(icons/wallet.svg) center / contain no-repeat; mask:url(icons/wallet.svg) center / contain no-repeat"></span>
+          </div>
+          <span style="font-family:var(--font-site); font-weight:600; font-size:var(--font-size-lg)">Cash Tracker</span>
+        </div>
+        <div style="position:relative; z-index:1; display:flex; flex-direction:column; gap:16px; max-width:560px">
+          <h1 style="margin:0; font-family:var(--font-site); font-weight:600; font-size:{{ authHeadSize }}; line-height:1.1; letter-spacing:-0.025em; text-wrap:balance">Каждый рубль — <span style="background:{{ heroChipBg }}; border-right:2px solid currentColor; border-radius:var(--radius-l2) 0 0 var(--radius-l2); padding:0 6px">на своём месте</span></h1>
+          <p style="margin:0; font-size:var(--font-size-lg); line-height:var(--line-height-lg); color:{{ heroMuted }}; text-wrap:pretty">Делите чеки по категориям, ставьте лимиты на месяц и смотрите, куда уходят деньги.</p>
+        </div>
+        <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}">
+          <div style="position:relative; z-index:1; display:flex; flex-direction:column; gap:10px; font-size:var(--font-size-sm)">
+            <div><b>Сплиты.</b> <span style="color:{{ heroMuted }}">Один чек — несколько категорий</span></div>
+            <div><b>Бюджеты.</b> <span style="color:{{ heroMuted }}">Лимит, потрачено и остаток на месяц</span></div>
+            <div><b>Аналитика.</b> <span style="color:{{ heroMuted }}">Траты по категориям и по месяцам</span></div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="position:relative; flex:1; display:flex; align-items:center; justify-content:center; padding:32px 20px">
+        <div style="width:100%; max-width:400px; display:flex; flex-direction:column; gap:20px">
+          <div style="display:flex; justify-content:flex-end">
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.SegmentGroup" items="{{ themeItems }}" value="{{ themePref }}" onValueChange="{{ setTheme }}" size="sm" hint-size="112px,32px"></x-import>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <h2 style="margin:0; font-family:var(--font-site); font-size:var(--font-size-3xl); line-height:var(--line-height-3xl); font-weight:600; letter-spacing:-0.01em">{{ authTitle }}</h2>
+            <p style="margin:0; color:var(--fg-muted); font-size:var(--font-size-sm)">{{ authSub }}</p>
+          </div>
+          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.SegmentGroup" items="{{ authModes }}" value="{{ authMode }}" onValueChange="{{ setAuthMode }}" dc-props="{{ fullWidth }}" hint-size="100%,40px"></x-import>
+          <form onSubmit="{{ submitAuth }}" style="display:flex; flex-direction:column; gap:16px">
+            <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Имя" hint-size="100%,66px">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="Как к вам обращаться" value="{{ auth.name }}" onChange="{{ onAuthName }}" size="lg" hint-size="100%,44px"></x-import>
+              </x-import>
+            </sc-if>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Email" hint-size="100%,66px">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" type="email" placeholder="you@example.com" value="{{ auth.email }}" onChange="{{ onAuthEmail }}" size="lg" hint-size="100%,44px"></x-import>
+            </x-import>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Пароль" invalid="{{ hasAuthErr }}" error-text="{{ authErr }}" hint-size="100%,66px">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" type="password" placeholder="••••••••" value="{{ auth.password }}" onChange="{{ onAuthPassword }}" invalid="{{ hasAuthErr }}" size="lg" hint-size="100%,44px"></x-import>
+            </x-import>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" type="submit" size="lg" dc-props="{{ holoBtnFull }}" hint-size="100%,44px">{{ authCta }}</x-import>
+          </form>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showApp }}" hint-placeholder-val="{{ true }}">
+    <div style="position:relative; z-index:1; display:flex; min-height:{{ vh }}">
+      <sc-if value="{{ showSidebar }}" hint-placeholder-val="{{ true }}">
+        <aside style="position:sticky; top:0; height:{{ vh }}; width:{{ sidebarW }}px; flex-shrink:0; display:flex; flex-direction:column; gap:28px; padding:20px {{ sidebarPadX }}px; border-right:1px solid var(--border-muted); background:color-mix(in srgb, var(--bg-panel) 66%, transparent); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px)">
+          <div style="display:flex; align-items:center; gap:10px; height:40px; padding:0 {{ logoPadX }}px">
+            <div style="width:32px; height:32px; flex-shrink:0; border-radius:var(--radius-l3); background:linear-gradient(135deg, var(--pink-300), var(--purple-400) 35%, var(--cyan-300) 70%, var(--teal-200)); display:flex; align-items:center; justify-content:center">
+              <span style="width:18px; height:18px; background:var(--gray-950); -webkit-mask:url(icons/wallet.svg) center / contain no-repeat; mask:url(icons/wallet.svg) center / contain no-repeat"></span>
+            </div>
+            <sc-if value="{{ showNavLabels }}" hint-placeholder-val="{{ true }}">
+              <span style="font-family:var(--font-site); font-weight:600; font-size:var(--font-size-lg); letter-spacing:-0.01em; white-space:nowrap">Cash Tracker</span>
+            </sc-if>
+          </div>
+          <nav style="display:flex; flex-direction:column; gap:2px">
+            <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="6">
+              <button onClick="{{ n.go }}" title="{{ n.label }}" aria-current="{{ n.current }}" style="display:flex; align-items:center; justify-content:{{ navJustify }}; gap:12px; height:40px; padding:0 10px; border:0; border-radius:var(--radius-l2); background:{{ n.bg }}; color:{{ n.color }}; font-family:inherit; font-size:var(--font-size-sm); font-weight:500; cursor:pointer; text-align:left; transition:background 150ms, color 150ms" style-hover="background:var(--bg-muted); color:var(--fg)">
+                <span style="width:20px; height:20px; flex-shrink:0; background:{{ n.iconBg }}; -webkit-mask:url({{ n.iconUrl }}) center / contain no-repeat; mask:url({{ n.iconUrl }}) center / contain no-repeat"></span>
+                <sc-if value="{{ showNavLabels }}" hint-placeholder-val="{{ true }}"><span>{{ n.label }}</span></sc-if>
+              </button>
+            </sc-for>
+          </nav>
+          <div style="flex:1"></div>
+          <button onClick="{{ goProfile }}" style="display:flex; align-items:center; justify-content:{{ navJustify }}; gap:10px; padding:8px; border:1px solid var(--border-muted); border-radius:var(--radius-l3); background:var(--bg-panel); color:inherit; font-family:inherit; cursor:pointer; text-align:left" style-hover="background:var(--bg-muted)">
+            <div style="padding:2px; border-radius:9999px; background:linear-gradient(135deg, var(--pink-400), var(--purple-400), var(--cyan-300), var(--yellow-300)); display:flex">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Avatar" name="{{ user.name }}" size="sm" color-palette="purple" hint-size="36px,36px"></x-import>
+            </div>
+            <sc-if value="{{ showNavLabels }}" hint-placeholder-val="{{ true }}">
+              <span style="flex:1; min-width:0; display:flex; flex-direction:column">
+                <span style="font-size:var(--font-size-sm); font-weight:500">{{ user.name }}</span>
+                <span style="font-size:var(--font-size-xs); color:var(--fg-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ user.email }}</span>
+              </span>
+            </sc-if>
+          </button>
+        </aside>
+      </sc-if>
+
+      <main style="flex:1; min-width:0; display:flex; flex-direction:column">
+        <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}">
+          <header style="position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:16px; padding:16px {{ hPad }}px; border-bottom:1px solid var(--border-muted); background:color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px)">
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column">
+              <h1 style="margin:0; font-family:var(--font-site); font-size:var(--font-size-2xl); line-height:var(--line-height-2xl); font-weight:600; letter-spacing:-0.01em">{{ title }}</h1>
+              <span style="color:var(--fg-muted); font-size:var(--font-size-sm)">{{ subtitle }}</span>
+            </div>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.SegmentGroup" items="{{ themeItems }}" value="{{ themePref }}" onValueChange="{{ setTheme }}" size="sm" hint-size="112px,32px"></x-import>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" onClick="{{ openNew }}" dc-props="{{ holoBtn }}" hint-size="160px,40px">
+              <span style="width:18px; height:18px; background:currentColor; -webkit-mask:url(icons/plus.svg) center / contain no-repeat; mask:url(icons/plus.svg) center / contain no-repeat"></span>
+              Добавить трату
+            </x-import>
+          </header>
+        </sc-if>
+        <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+          <header style="position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:10px; padding:10px 12px 10px 16px; border-bottom:1px solid var(--border-muted); background:color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px)">
+            <div style="width:28px; height:28px; flex-shrink:0; border-radius:var(--radius-l3); background:linear-gradient(135deg, var(--pink-300), var(--purple-400) 35%, var(--cyan-300) 70%, var(--teal-200)); display:flex; align-items:center; justify-content:center">
+              <span style="width:16px; height:16px; background:var(--gray-950); -webkit-mask:url(icons/wallet.svg) center / contain no-repeat; mask:url(icons/wallet.svg) center / contain no-repeat"></span>
+            </div>
+            <h1 style="flex:1; min-width:0; margin:0; font-family:var(--font-site); font-size:var(--font-size-xl); line-height:var(--line-height-xl); font-weight:600">{{ title }}</h1>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Сменить тему" variant="ghost" size="md" onClick="{{ cycleTheme }}" hint-size="44px,44px">
+              <span style="width:20px; height:20px; background:currentColor; -webkit-mask:url({{ themeIconUrl }}) center / contain no-repeat; mask:url({{ themeIconUrl }}) center / contain no-repeat"></span>
+            </x-import>
+            <button onClick="{{ goProfile }}" aria-label="Профиль" style="padding:2px; border:0; border-radius:9999px; background:linear-gradient(135deg, var(--pink-400), var(--purple-400), var(--cyan-300), var(--yellow-300)); display:flex; cursor:pointer">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Avatar" name="{{ user.name }}" size="sm" color-palette="purple" hint-size="36px,36px"></x-import>
+            </button>
+          </header>
+        </sc-if>
+
+        <div style="width:100%; max-width:1240px; margin:0 auto; padding:{{ pagePad }}; display:flex; flex-direction:column; gap:16px; box-sizing:border-box">
+
+          <!-- ============ DASHBOARD · BENTO ============ -->
+          <sc-if value="{{ showBento }}" hint-placeholder-val="{{ true }}">
+            <div data-screen-label="Обзор · Бенто" style="display:flex; flex-direction:column; gap:16px">
+              <div style="display:flex; flex-wrap:wrap; gap:16px">
+                <div style="position:relative; flex:2 1 520px; min-width:0; min-height:248px; border-radius:var(--radius-l3); overflow:hidden; color:{{ heroFg }}; box-shadow:var(--shadow-lg); display:flex">
+                  {{ heroHolo }}
+                  <div style="position:relative; z-index:1; flex:1; display:flex; flex-direction:column; justify-content:space-between; gap:28px; padding:{{ heroPad }}">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap">
+                      <div style="display:flex; flex-direction:column; gap:4px">
+                        <span style="font-size:var(--font-size-sm); font-weight:500; color:{{ heroMuted }}">Потрачено в октябре</span>
+                        <span style="font-family:var(--font-site); font-size:{{ heroNumSize }}; line-height:1.05; font-weight:600; letter-spacing:-0.025em; font-variant-numeric:tabular-nums">{{ m.spentTxt }}</span>
+                        <span style="font-size:var(--font-size-sm); color:{{ heroMuted }}">из {{ m.limitTxt }} общего бюджета</span>
+                      </div>
+                      <button onClick="{{ goProfile }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 14px; border:0; border-radius:var(--radius-l3); background:{{ heroChipBg }}; color:inherit; font-family:inherit; cursor:pointer; backdrop-filter:blur(8px)">
+                        <span style="font-size:var(--font-size-xs); color:{{ heroMuted }}">Баланс</span>
+                        <span style="font-size:var(--font-size-md); font-weight:600; font-variant-numeric:tabular-nums">{{ balanceTxt }}</span>
+                      </button>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:10px">
+                      <div style="height:10px; border-radius:9999px; background:{{ heroTrack }}; overflow:hidden">
+                        <div style="height:100%; width:{{ m.pctW }}%; border-radius:inherit; background:{{ heroFill }}; transition:width 400ms"></div>
+                      </div>
+                      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; font-size:var(--font-size-sm)">
+                        <span><b style="font-weight:600">Осталось {{ m.availTxt }}</b> <span style="color:{{ heroMuted }}">· {{ m.pctTxt }} бюджета</span></span>
+                        <span style="color:{{ heroMuted }}">≈ {{ m.perDayTxt }} в день · {{ m.daysLeftTxt }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="flex:1 1 300px; min-width:0; display:flex; flex-direction:column">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glassFill }}" hint-size="100%,248px">
+                    <div style="display:flex; flex-direction:column; gap:16px">
+                      <div style="display:flex; justify-content:space-between; align-items:baseline">
+                        <span style="font-weight:600; font-size:var(--font-size-md)">По категориям</span>
+                        <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Октябрь</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap">
+                        <div style="position:relative; width:140px; height:140px; flex-shrink:0">
+                          <div style="position:absolute; inset:0; border-radius:50%; background:{{ donutBg }}; -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 18px), #000 calc(100% - 17px)); mask:radial-gradient(farthest-side, transparent calc(100% - 18px), #000 calc(100% - 17px))"></div>
+                          <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center">
+                            <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">{{ catCountTxt }}</span>
+                            <span style="font-weight:600; font-size:var(--font-size-sm); font-variant-numeric:tabular-nums">{{ m.spentTxt }}</span>
+                          </div>
+                        </div>
+                        <div style="flex:1 1 140px; min-width:0; display:flex; flex-direction:column; gap:8px">
+                          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
+                            <div style="display:flex; align-items:center; gap:8px; font-size:var(--font-size-sm)">
+                              <span style="width:10px; height:10px; border-radius:3px; flex-shrink:0; background:{{ l.grad }}"></span>
+                              <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ l.name }}</span>
+                              <span style="color:var(--fg-muted); font-variant-numeric:tabular-nums">{{ l.pctTxt }}</span>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </x-import>
+                </div>
+              </div>
+
+              <div style="display:flex; flex-wrap:wrap; gap:16px">
+                <div style="flex:1 1 340px; min-width:0; display:flex; flex-direction:column">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glassFill }}" hint-size="100%,380px">
+                    <div style="display:flex; flex-direction:column; gap:18px">
+                      <div style="display:flex; justify-content:space-between; align-items:center">
+                        <span style="font-weight:600; font-size:var(--font-size-md)">Бюджеты</span>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="ghost" size="xs" onClick="{{ goBudgets }}" hint-size="80px,32px">Все бюджеты</x-import>
+                      </div>
+                      <sc-for list="{{ budgetRows }}" as="b" hint-placeholder-count="5">
+                        <div style="display:flex; flex-direction:column; gap:8px">
+                          <div style="display:flex; align-items:center; gap:10px">
+                            <span style="width:28px; height:28px; flex-shrink:0; border-radius:var(--radius-l2); background:{{ b.tint }}; display:flex; align-items:center; justify-content:center">
+                              <span style="width:16px; height:16px; background:{{ b.grad }}; -webkit-mask:url({{ b.iconUrl }}) center / contain no-repeat; mask:url({{ b.iconUrl }}) center / contain no-repeat"></span>
+                            </span>
+                            <span style="flex:1; min-width:0; font-size:var(--font-size-sm); font-weight:500">{{ b.name }}</span>
+                            <span style="font-size:var(--font-size-sm); font-variant-numeric:tabular-nums">{{ b.spentTxt }} <span style="color:var(--fg-muted)">/ {{ b.limitTxt }}</span></span>
+                          </div>
+                          <div style="height:6px; border-radius:9999px; background:var(--bg-muted); box-shadow:var(--shadow-inset); overflow:hidden">
+                            <div style="height:100%; width:{{ b.pctW }}%; border-radius:inherit; background:{{ b.barBg }}"></div>
+                          </div>
+                          <span style="font-size:var(--font-size-xs); color:{{ b.statusColor }}; font-weight:{{ b.statusWeight }}">{{ b.statusTxt }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </x-import>
+                </div>
+                <div style="flex:1.4 1 420px; min-width:0; display:flex; flex-direction:column">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glassFill }}" hint-size="100%,380px">
+                    <div style="display:flex; flex-direction:column; gap:8px">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+                        <span style="font-weight:600; font-size:var(--font-size-md)">Последние операции</span>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="ghost" size="xs" onClick="{{ goTransactions }}" hint-size="80px,32px">Все операции</x-import>
+                      </div>
+                      <div style="display:flex; flex-direction:column; margin:0 -8px">
+                        <sc-for list="{{ recent }}" as="t" hint-placeholder-count="6">
+                          <button onClick="{{ t.open }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:10px 8px; border:0; background:transparent; border-radius:var(--radius-l2); text-align:left; font-family:inherit; color:inherit; cursor:pointer; transition:background 150ms" style-hover="background:var(--bg-muted)">
+                            <span style="width:40px; height:40px; flex-shrink:0; border-radius:var(--radius-l3); background:{{ t.tint }}; display:flex; align-items:center; justify-content:center">
+                              <span style="width:20px; height:20px; background:{{ t.grad }}; -webkit-mask:url({{ t.iconUrl }}) center / contain no-repeat; mask:url({{ t.iconUrl }}) center / contain no-repeat"></span>
+                            </span>
+                            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
+                              <span style="font-size:var(--font-size-sm); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ t.desc }}</span>
+                              <span style="display:flex; flex-wrap:wrap; gap:2px 10px; font-size:var(--font-size-xs); color:var(--fg-muted)">
+                                <sc-for list="{{ t.chips }}" as="c" hint-placeholder-count="1">
+                                  <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:7px; height:7px; border-radius:9999px; background:{{ c.grad }}"></span>{{ c.label }}</span>
+                                </sc-for>
+                              </span>
+                            </span>
+                            <span style="display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0">
+                              <span style="font-size:var(--font-size-sm); font-weight:600; font-variant-numeric:tabular-nums">{{ t.amountTxt }}</span>
+                              <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">{{ t.metaDate }}</span>
+                            </span>
+                          </button>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </x-import>
+                </div>
+              </div>
+
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,260px">
+                <div style="display:flex; flex-direction:column; gap:18px">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px">
+                    <span style="font-weight:600; font-size:var(--font-size-md)">Динамика за 2026</span>
+                    <span style="font-size:var(--font-size-sm); color:var(--fg-muted)">В среднем {{ yr.avgTxt }} в месяц</span>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); gap:{{ barGap }}px; align-items:end; height:150px">
+                    <sc-for list="{{ yr.bars }}" as="bar" hint-placeholder-count="12">
+                      <div title="{{ bar.title }}" style="height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:stretch; gap:6px">
+                        <div style="height:{{ bar.h }}%; min-height:4px; border-radius:var(--radius-l2) var(--radius-l2) 2px 2px; background:{{ bar.bg }}; opacity:{{ bar.op }}; box-shadow:{{ bar.ring }}; transition:height 400ms"></div>
+                        <span style="text-align:center; font-size:var(--font-size-2xs); color:{{ bar.labelColor }}; font-weight:{{ bar.labelWeight }}">{{ bar.label }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+          <!-- ============ DASHBOARD · FOCUS ============ -->
+          <sc-if value="{{ showFocus }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Обзор · Фокус" style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start">
+              <div style="flex:1.6 1 520px; min-width:0; display:flex; flex-direction:column; gap:16px">
+                <div style="padding:1px; border-radius:calc(var(--radius-l3) + 1px); background:linear-gradient(120deg, var(--pink-400), var(--purple-400), var(--blue-400), var(--cyan-300), var(--teal-300), var(--yellow-300)); box-shadow:var(--shadow-lg)">
+                  <div style="border-radius:var(--radius-l3); background:var(--bg-panel); padding:{{ heroPad }}; display:flex; flex-wrap:wrap; align-items:center; gap:28px">
+                    <div style="position:relative; width:{{ ringSize }}px; height:{{ ringSize }}px; flex-shrink:0; margin:0 auto">
+                      <div style="position:absolute; inset:0; border-radius:50%; background:{{ ringBg }}; -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px)); mask:radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px))"></div>
+                      <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; text-align:center">
+                        <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Осталось</span>
+                        <span style="font-family:var(--font-site); font-size:var(--font-size-2xl); font-weight:600; letter-spacing:-0.02em; font-variant-numeric:tabular-nums">{{ m.availTxt }}</span>
+                        <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">{{ m.pctTxt }} потрачено</span>
+                      </div>
+                    </div>
+                    <div style="flex:1 1 240px; min-width:0; display:flex; flex-direction:column; gap:16px">
+                      <div style="display:flex; flex-direction:column; gap:4px">
+                        <span style="font-size:var(--font-size-sm); color:var(--fg-muted)">Можно тратить в день до конца октября</span>
+                        <span style="font-family:var(--font-site); font-size:{{ heroNumSize }}; line-height:1.05; font-weight:600; letter-spacing:-0.025em; font-variant-numeric:tabular-nums">{{ m.perDayTxt }}</span>
+                      </div>
+                      <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; padding-top:16px; border-top:1px solid var(--border-muted)">
+                        <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Потрачено</span><span style="font-weight:600; font-variant-numeric:tabular-nums">{{ m.spentTxt }}</span></div>
+                        <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Лимит</span><span style="font-weight:600; font-variant-numeric:tabular-nums">{{ m.limitTxt }}</span></div>
+                        <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Баланс</span><span style="font-weight:600; font-variant-numeric:tabular-nums">{{ balanceTxt }}</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,140px">
+                  <div style="display:flex; flex-direction:column; gap:14px">
+                    <div style="display:flex; justify-content:space-between; align-items:baseline">
+                      <span style="font-weight:600; font-size:var(--font-size-md)">Структура трат</span>
+                      <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Октябрь · {{ m.spentTxt }}</span>
+                    </div>
+                    <div style="display:flex; gap:3px; height:14px">
+                      <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
+                        <div title="{{ l.name }} · {{ l.amountTxt }}" style="width:{{ l.pct }}%; min-width:4px; height:100%; border-radius:3px; background:{{ l.grad }}"></div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px 18px">
+                      <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
+                        <span style="display:inline-flex; align-items:center; gap:6px; font-size:var(--font-size-sm)">
+                          <span style="width:8px; height:8px; border-radius:9999px; background:{{ l.grad }}"></span>
+                          {{ l.name }} <span style="color:var(--fg-muted); font-variant-numeric:tabular-nums">{{ l.amountTxt }}</span>
+                        </span>
+                      </sc-for>
+                    </div>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,420px">
+                  <div style="display:flex; flex-direction:column; gap:16px">
+                    <div style="display:flex; justify-content:space-between; align-items:center">
+                      <span style="font-weight:600; font-size:var(--font-size-md)">Лента</span>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="ghost" size="xs" onClick="{{ goTransactions }}" hint-size="80px,32px">Все операции</x-import>
+                    </div>
+                    <sc-for list="{{ feedGroups }}" as="g" hint-placeholder-count="3">
+                      <div style="display:flex; flex-direction:column; gap:2px">
+                        <div style="display:flex; justify-content:space-between; font-size:var(--font-size-xs); color:var(--fg-muted); font-weight:500; padding-bottom:4px">
+                          <span>{{ g.label }}</span><span style="font-variant-numeric:tabular-nums">{{ g.totalTxt }}</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; margin:0 -8px">
+                          <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="2">
+                            <button onClick="{{ t.open }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:8px; border:0; background:transparent; border-radius:var(--radius-l2); text-align:left; font-family:inherit; color:inherit; cursor:pointer; transition:background 150ms" style-hover="background:var(--bg-muted)">
+                              <span style="width:36px; height:36px; flex-shrink:0; border-radius:var(--radius-l3); background:{{ t.tint }}; display:flex; align-items:center; justify-content:center">
+                                <span style="width:18px; height:18px; background:{{ t.grad }}; -webkit-mask:url({{ t.iconUrl }}) center / contain no-repeat; mask:url({{ t.iconUrl }}) center / contain no-repeat"></span>
+                              </span>
+                              <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+                                <span style="font-size:var(--font-size-sm); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ t.desc }}</span>
+                                <span style="display:flex; flex-wrap:wrap; gap:2px 10px; font-size:var(--font-size-xs); color:var(--fg-muted)">
+                                  <span>{{ t.time }}</span>
+                                  <sc-for list="{{ t.chips }}" as="c" hint-placeholder-count="1">
+                                    <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:7px; height:7px; border-radius:9999px; background:{{ c.grad }}"></span>{{ c.label }}</span>
+                                  </sc-for>
+                                </span>
+                              </span>
+                              <span style="font-size:var(--font-size-sm); font-weight:600; font-variant-numeric:tabular-nums; flex-shrink:0">{{ t.amountTxt }}</span>
+                            </button>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </x-import>
+              </div>
+
+              <div style="flex:1 1 300px; min-width:0; display:flex; flex-direction:column; gap:16px">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,420px">
+                  <div style="display:flex; flex-direction:column; gap:14px">
+                    <div style="display:flex; justify-content:space-between; align-items:center">
+                      <span style="font-weight:600; font-size:var(--font-size-md)">Лимиты</span>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="ghost" size="xs" onClick="{{ goBudgets }}" hint-size="80px,32px">Настроить</x-import>
+                    </div>
+                    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px">
+                      <sc-for list="{{ budgetRows }}" as="b" hint-placeholder-count="5">
+                        <div style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:12px; border-radius:var(--radius-l3); background:var(--bg-subtle); border:1px solid var(--border-muted)">
+                          <div style="position:relative; width:52px; height:52px">
+                            <div style="position:absolute; inset:0; border-radius:50%; background:{{ b.ringBg }}; -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px))"></div>
+                            <span style="position:absolute; inset:0; margin:auto; width:20px; height:20px; background:{{ b.grad }}; -webkit-mask:url({{ b.iconUrl }}) center / contain no-repeat; mask:url({{ b.iconUrl }}) center / contain no-repeat"></span>
+                          </div>
+                          <div style="display:flex; flex-direction:column; gap:1px; min-width:0; width:100%">
+                            <span style="font-size:var(--font-size-sm); font-weight:500">{{ b.name }}</span>
+                            <span style="font-size:var(--font-size-xs); color:{{ b.statusColor }}; font-weight:{{ b.statusWeight }}">{{ b.statusShort }}</span>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </x-import>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ============ TRANSACTIONS ============ -->
+          <sc-if value="{{ isTransactions }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Операции" style="display:flex; flex-direction:column; gap:16px">
+              <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+                <div style="position:relative; flex:1 1 260px; min-width:0">
+                  <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; z-index:1; pointer-events:none; background:var(--fg-muted); -webkit-mask:url(icons/search.svg) center / contain no-repeat; mask:url(icons/search.svg) center / contain no-repeat"></span>
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="Поиск по описанию" value="{{ f.q }}" onChange="{{ onQ }}" dc-props="{{ searchInput }}" hint-size="100%,40px"></x-import>
+                </div>
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="{{ filterBtnVariant }}" onClick="{{ toggleFilters }}" hint-size="120px,40px">
+                  <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/sliders-horizontal.svg) center / contain no-repeat; mask:url(icons/sliders-horizontal.svg) center / contain no-repeat"></span>
+                  Фильтры
+                  <sc-if value="{{ hasActiveFilters }}" hint-placeholder-val="{{ false }}">
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Badge" variant="solid" color-palette="purple" size="sm" hint-size="20px,20px">{{ activeFilterCount }}</x-import>
+                  </sc-if>
+                </x-import>
+              </div>
+
+              <sc-if value="{{ filtersOpen }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="sm" dc-props="{{ glass }}" hint-size="100%,150px">
+                  <div style="display:flex; flex-direction:column; gap:14px">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap:12px">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Категория" hint-size="100%,66px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.NativeSelect" options="{{ catFilterOptions }}" value="{{ f.cat }}" onChange="{{ onFCat }}" hint-size="100%,40px"></x-import>
+                      </x-import>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Сумма от, ₽" hint-size="100%,66px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="0" inputMode="decimal" value="{{ f.min }}" onChange="{{ onFMin }}" hint-size="100%,40px"></x-import>
+                      </x-import>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Сумма до, ₽" hint-size="100%,66px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="∞" inputMode="decimal" value="{{ f.max }}" onChange="{{ onFMax }}" hint-size="100%,40px"></x-import>
+                      </x-import>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Дата с" hint-size="100%,66px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" type="date" value="{{ f.from }}" onChange="{{ onFFrom }}" hint-size="100%,40px"></x-import>
+                      </x-import>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Дата по" hint-size="100%,66px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" type="date" value="{{ f.to }}" onChange="{{ onFTo }}" hint-size="100%,40px"></x-import>
+                      </x-import>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="ghost" size="sm" onClick="{{ resetFilters }}" disabled="{{ noActiveFilters }}" hint-size="100px,36px">Сбросить фильтры</x-import>
+                    </div>
+                  </div>
+                </x-import>
+              </sc-if>
+
+              <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; padding:0 4px">
+                <span style="font-size:var(--font-size-sm); color:var(--fg-muted)">{{ txCountTxt }}</span>
+                <span style="font-size:var(--font-size-sm)">Итого <b style="font-weight:600; font-variant-numeric:tabular-nums">{{ txTotalTxt }}</b></span>
+              </div>
+
+              <sc-if value="{{ hasTxResults }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ txGroups }}" as="g" hint-placeholder-count="4">
+                  <div style="display:flex; flex-direction:column; gap:8px">
+                    <div style="display:flex; justify-content:space-between; padding:0 4px; font-size:var(--font-size-xs); color:var(--fg-muted); font-weight:500">
+                      <span>{{ g.label }}</span><span style="font-variant-numeric:tabular-nums">{{ g.totalTxt }}</span>
+                    </div>
+                    <div style="border:1px solid var(--border); border-radius:var(--radius-l3); background:color-mix(in srgb, var(--bg-panel) 82%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); padding:4px">
+                      <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="2">
+                        <button onClick="{{ t.open }}" style="display:flex; align-items:center; gap:14px; width:100%; padding:10px 12px; border:0; background:transparent; border-radius:var(--radius-l2); text-align:left; font-family:inherit; color:inherit; cursor:pointer; transition:background 150ms" style-hover="background:var(--bg-muted)">
+                          <span style="width:40px; height:40px; flex-shrink:0; border-radius:var(--radius-l3); background:{{ t.tint }}; display:flex; align-items:center; justify-content:center">
+                            <span style="width:20px; height:20px; background:{{ t.grad }}; -webkit-mask:url({{ t.iconUrl }}) center / contain no-repeat; mask:url({{ t.iconUrl }}) center / contain no-repeat"></span>
+                          </span>
+                          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
+                            <span style="font-size:var(--font-size-sm); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ t.desc }}</span>
+                            <span style="display:flex; flex-wrap:wrap; gap:2px 10px; font-size:var(--font-size-xs); color:var(--fg-muted)">
+                              <span>{{ t.time }}</span>
+                              <sc-for list="{{ t.chips }}" as="c" hint-placeholder-count="1">
+                                <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:7px; height:7px; border-radius:9999px; background:{{ c.grad }}"></span>{{ c.label }}</span>
+                              </sc-for>
+                            </span>
+                          </span>
+                          <sc-if value="{{ t.showSplitBadge }}" hint-placeholder-val="{{ false }}">
+                            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Badge" variant="surface" color-palette="purple" size="sm" hint-size="60px,20px">{{ t.splitCountTxt }}</x-import>
+                          </sc-if>
+                          <span style="font-size:var(--font-size-sm); font-weight:600; font-variant-numeric:tabular-nums; flex-shrink:0; min-width:{{ amountMinW }}; text-align:right">{{ t.amountTxt }}</span>
+                        </button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ noTxResults }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="md" dc-props="{{ glass }}" hint-size="100%,220px">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.EmptyState" title="Ничего не найдено" description="Попробуйте изменить фильтры или сбросить их" hint-size="100%,180px">
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="outline" size="sm" onClick="{{ resetAll }}" hint-size="120px,36px">Сбросить всё</x-import>
+                  </x-import>
+                </x-import>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- ============ BUDGETS ============ -->
+          <sc-if value="{{ isBudgets }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Бюджеты" style="display:flex; flex-direction:column; gap:16px">
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:12px">
+                <div style="display:flex; align-items:center; gap:4px">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Предыдущий месяц" variant="outline" size="sm" onClick="{{ prevBMonth }}" hint-size="36px,36px">
+                    <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/chevron-left.svg) center / contain no-repeat; mask:url(icons/chevron-left.svg) center / contain no-repeat"></span>
+                  </x-import>
+                  <span style="min-width:150px; text-align:center; font-family:var(--font-site); font-size:var(--font-size-lg); font-weight:600">{{ bMonthLabel }}</span>
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Следующий месяц" variant="outline" size="sm" onClick="{{ nextBMonth }}" hint-size="36px,36px">
+                    <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/chevron-right.svg) center / contain no-repeat; mask:url(icons/chevron-right.svg) center / contain no-repeat"></span>
+                  </x-import>
+                </div>
+                <div style="flex:1"></div>
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="outline" size="sm" onClick="{{ openBForm }}" disabled="{{ noBOptions }}" hint-size="140px,36px">
+                  <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/plus.svg) center / contain no-repeat; mask:url(icons/plus.svg) center / contain no-repeat"></span>
+                  Новый бюджет
+                </x-import>
+              </div>
+
+              <sc-if value="{{ bFormOpen }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="sm" dc-props="{{ glass }}" hint-size="100%,120px">
+                  <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end">
+                    <div style="flex:1 1 220px; min-width:0">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="На что" hint-size="100%,66px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.NativeSelect" options="{{ bFormOptions }}" value="{{ bForm.cat }}" onChange="{{ onBFormCat }}" hint-size="100%,40px"></x-import>
+                      </x-import>
+                    </div>
+                    <div style="flex:1 1 160px; min-width:0">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Лимит на месяц, ₽" hint-size="100%,66px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="10 000" inputMode="decimal" value="{{ bForm.limit }}" onChange="{{ onBFormLimit }}" hint-size="100%,40px"></x-import>
+                      </x-import>
+                    </div>
+                    <div style="display:flex; gap:8px">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="ghost" onClick="{{ closeBForm }}" hint-size="80px,40px">Отмена</x-import>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" onClick="{{ saveBForm }}" disabled="{{ bFormInvalid }}" hint-size="100px,40px">Создать</x-import>
+                    </div>
+                  </div>
+                </x-import>
+              </sc-if>
+
+              <sc-if value="{{ hasOverall }}" hint-placeholder-val="{{ true }}">
+                <div style="position:relative; border-radius:var(--radius-l3); overflow:hidden; color:{{ heroFg }}; box-shadow:var(--shadow-lg)">
+                  {{ budgetHolo }}
+                  <div style="position:relative; z-index:1; padding:{{ heroPad }}; display:flex; flex-direction:column; gap:20px">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px">
+                      <span style="font-weight:600">Общий бюджет на месяц</span>
+                      <sc-if value="{{ overallNotEditing }}" hint-placeholder-val="{{ true }}">
+                        <button onClick="{{ ov.onEditStart }}" aria-label="Изменить лимит" style="display:flex; align-items:center; gap:6px; height:32px; padding:0 10px; border:0; border-radius:var(--radius-l2); background:{{ heroChipBg }}; color:inherit; font-family:inherit; font-size:var(--font-size-xs); font-weight:500; cursor:pointer">
+                          <span style="width:14px; height:14px; background:currentColor; -webkit-mask:url(icons/pencil.svg) center / contain no-repeat; mask:url(icons/pencil.svg) center / contain no-repeat"></span>
+                          Изменить
+                        </button>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ ov.editing }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; gap:8px; align-items:center; max-width:360px">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" inputMode="decimal" value="{{ ov.editVal }}" onChange="{{ ov.onEditChange }}" dc-props="{{ heroInput }}" hint-size="100%,40px"></x-import>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" onClick="{{ ov.onEditSave }}" hint-size="100px,40px">Сохранить</x-import>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Отмена" variant="ghost" onClick="{{ ov.onEditCancel }}" dc-props="{{ heroGhost }}" hint-size="40px,40px">
+                          <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/x.svg) center / contain no-repeat; mask:url(icons/x.svg) center / contain no-repeat"></span>
+                        </x-import>
+                      </div>
+                    </sc-if>
+                    <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px">
+                      <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:{{ heroMuted }}">Лимит</span><span style="font-family:var(--font-site); font-size:{{ statNumSize }}; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-0.02em">{{ ov.limitTxt }}</span></div>
+                      <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:{{ heroMuted }}">Потрачено</span><span style="font-family:var(--font-site); font-size:{{ statNumSize }}; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-0.02em">{{ ov.spentTxt }}</span></div>
+                      <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:{{ heroMuted }}">{{ ov.availLabel }}</span><span style="font-family:var(--font-site); font-size:{{ statNumSize }}; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-0.02em">{{ ov.availTxt }}</span></div>
+                    </div>
+                    <div style="height:10px; border-radius:9999px; background:{{ heroTrack }}; overflow:hidden">
+                      <div style="height:100%; width:{{ ov.pctW }}%; border-radius:inherit; background:{{ heroFill }}; transition:width 400ms"></div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noOverall }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:20px; border:1px dashed var(--border-emphasized); border-radius:var(--radius-l3)">
+                  <div style="display:flex; flex-direction:column; gap:2px">
+                    <span style="font-weight:600">Общий бюджет не задан</span>
+                    <span style="font-size:var(--font-size-sm); color:var(--fg-muted)">Лимит на все траты месяца, независимо от категорий</span>
+                  </div>
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="outline" size="sm" onClick="{{ openOverallForm }}" hint-size="120px,36px">Задать лимит</x-import>
+                </div>
+              </sc-if>
+
+              <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap:16px">
+                <sc-for list="{{ bCards }}" as="b" hint-placeholder-count="5">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="sm" dc-props="{{ glass }}" hint-size="100%,170px">
+                    <div style="display:flex; flex-direction:column; gap:14px">
+                      <div style="display:flex; align-items:center; gap:10px">
+                        <span style="width:36px; height:36px; flex-shrink:0; border-radius:var(--radius-l3); background:{{ b.tint }}; display:flex; align-items:center; justify-content:center">
+                          <span style="width:18px; height:18px; background:{{ b.grad }}; -webkit-mask:url({{ b.iconUrl }}) center / contain no-repeat; mask:url({{ b.iconUrl }}) center / contain no-repeat"></span>
+                        </span>
+                        <span style="flex:1; min-width:0; font-weight:600">{{ b.name }}</span>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Изменить лимит" variant="ghost" size="xs" onClick="{{ b.onEditStart }}" hint-size="32px,32px">
+                          <span style="width:14px; height:14px; background:currentColor; -webkit-mask:url(icons/pencil.svg) center / contain no-repeat; mask:url(icons/pencil.svg) center / contain no-repeat"></span>
+                        </x-import>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Удалить бюджет" variant="ghost" size="xs" onClick="{{ b.onDelete }}" hint-size="32px,32px">
+                          <span style="width:14px; height:14px; background:currentColor; -webkit-mask:url(icons/trash-2.svg) center / contain no-repeat; mask:url(icons/trash-2.svg) center / contain no-repeat"></span>
+                        </x-import>
+                      </div>
+                      <sc-if value="{{ b.editing }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex; gap:6px">
+                          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" size="sm" inputMode="decimal" value="{{ b.editVal }}" onChange="{{ b.onEditChange }}" hint-size="100%,36px"></x-import>
+                          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Сохранить" size="sm" onClick="{{ b.onEditSave }}" hint-size="36px,36px">
+                            <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/check.svg) center / contain no-repeat; mask:url(icons/check.svg) center / contain no-repeat"></span>
+                          </x-import>
+                          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Отмена" variant="ghost" size="sm" onClick="{{ b.onEditCancel }}" hint-size="36px,36px">
+                            <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/x.svg) center / contain no-repeat; mask:url(icons/x.svg) center / contain no-repeat"></span>
+                          </x-import>
+                        </div>
+                      </sc-if>
+                      <div style="display:flex; align-items:baseline; gap:6px; flex-wrap:wrap">
+                        <span style="font-family:var(--font-site); font-size:var(--font-size-2xl); font-weight:600; letter-spacing:-0.02em; font-variant-numeric:tabular-nums">{{ b.spentTxt }}</span>
+                        <span style="font-size:var(--font-size-sm); color:var(--fg-muted)">из {{ b.limitTxt }}</span>
+                      </div>
+                      <div style="height:8px; border-radius:9999px; background:var(--bg-muted); box-shadow:var(--shadow-inset); overflow:hidden">
+                        <div style="height:100%; width:{{ b.pctW }}%; border-radius:inherit; background:{{ b.barBg }}; transition:width 400ms"></div>
+                      </div>
+                      <div style="display:flex; justify-content:space-between; align-items:center">
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Badge" variant="subtle" color-palette="{{ b.badgePalette }}" hint-size="100px,20px">{{ b.statusTxt }}</x-import>
+                        <span style="font-size:var(--font-size-xs); color:var(--fg-muted); font-variant-numeric:tabular-nums">{{ b.pctTxt }}</span>
+                      </div>
+                    </div>
+                  </x-import>
+                </sc-for>
+              </div>
+
+              <sc-if value="{{ hasUnbudgeted }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px">
+                  <span style="font-size:var(--font-size-sm); color:var(--fg-muted); margin-right:4px">Без лимита:</span>
+                  <sc-for list="{{ unbudgeted }}" as="u" hint-placeholder-count="1">
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="outline" size="xs" onClick="{{ u.onAdd }}" hint-size="110px,32px">
+                      <span style="width:8px; height:8px; border-radius:9999px; background:{{ u.grad }}"></span>
+                      {{ u.name }}
+                      <span style="width:14px; height:14px; background:currentColor; -webkit-mask:url(icons/plus.svg) center / contain no-repeat; mask:url(icons/plus.svg) center / contain no-repeat"></span>
+                    </x-import>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ bMonthEmpty }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="md" dc-props="{{ glass }}" hint-size="100%,200px">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.EmptyState" title="{{ bEmptyTitle }}" description="Задайте общий лимит или лимиты по категориям — остаток посчитается по реальным тратам" hint-size="100%,160px"></x-import>
+                </x-import>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- ============ ANALYTICS ============ -->
+          <sc-if value="{{ isAnalytics }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Аналитика" style="display:flex; flex-direction:column; gap:16px">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,420px">
+                <div style="display:flex; flex-direction:column; gap:24px">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
+                    <div style="display:flex; flex-direction:column; gap:2px">
+                      <span style="font-weight:600; font-size:var(--font-size-lg)">Траты по категориям</span>
+                      <span style="font-size:var(--font-size-sm); color:var(--fg-muted)">{{ an.periodTxt }}</span>
+                    </div>
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.SegmentGroup" items="{{ anPresets }}" value="{{ anPreset }}" onValueChange="{{ setAnPreset }}" size="sm" hint-size="240px,32px"></x-import>
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:center">
+                    <div style="position:relative; width:{{ anDonutSize }}px; height:{{ anDonutSize }}px; flex-shrink:0; margin:0 auto">
+                      <div style="position:absolute; inset:0; border-radius:50%; background:{{ an.donutBg }}; -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 26px), #000 calc(100% - 25px)); mask:radial-gradient(farthest-side, transparent calc(100% - 26px), #000 calc(100% - 25px))"></div>
+                      <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px">
+                        <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Всего</span>
+                        <span style="font-family:var(--font-site); font-size:var(--font-size-2xl); font-weight:600; letter-spacing:-0.02em; font-variant-numeric:tabular-nums">{{ an.totalTxt }}</span>
+                      </div>
+                    </div>
+                    <div style="flex:1 1 300px; min-width:0; display:flex; flex-direction:column; gap:14px">
+                      <sc-for list="{{ an.rows }}" as="r" hint-placeholder-count="6">
+                        <div style="display:flex; align-items:center; gap:12px">
+                          <span style="width:32px; height:32px; flex-shrink:0; border-radius:var(--radius-l2); background:{{ r.tint }}; display:flex; align-items:center; justify-content:center">
+                            <span style="width:16px; height:16px; background:{{ r.grad }}; -webkit-mask:url({{ r.iconUrl }}) center / contain no-repeat; mask:url({{ r.iconUrl }}) center / contain no-repeat"></span>
+                          </span>
+                          <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+                            <div style="display:flex; justify-content:space-between; gap:8px; font-size:var(--font-size-sm)">
+                              <span style="font-weight:500">{{ r.name }} <span style="color:var(--fg-muted); font-weight:400">{{ r.pctTxt }}</span></span>
+                              <span style="font-weight:600; font-variant-numeric:tabular-nums">{{ r.amountTxt }}</span>
+                            </div>
+                            <div style="height:6px; border-radius:9999px; background:var(--bg-muted); overflow:hidden">
+                              <div style="height:100%; width:{{ r.w }}%; border-radius:inherit; background:{{ r.grad }}"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,380px">
+                <div style="display:flex; flex-direction:column; gap:24px">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
+                    <span style="font-weight:600; font-size:var(--font-size-lg)">Траты по месяцам</span>
+                    <div style="display:flex; align-items:center; gap:4px">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Предыдущий год" variant="outline" size="xs" onClick="{{ prevYear }}" disabled="{{ noPrevYear }}" hint-size="32px,32px">
+                        <span style="width:14px; height:14px; background:currentColor; -webkit-mask:url(icons/chevron-left.svg) center / contain no-repeat; mask:url(icons/chevron-left.svg) center / contain no-repeat"></span>
+                      </x-import>
+                      <span style="min-width:56px; text-align:center; font-weight:600; font-variant-numeric:tabular-nums">{{ anYear }}</span>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Следующий год" variant="outline" size="xs" onClick="{{ nextYear }}" disabled="{{ noNextYear }}" hint-size="32px,32px">
+                        <span style="width:14px; height:14px; background:currentColor; -webkit-mask:url(icons/chevron-right.svg) center / contain no-repeat; mask:url(icons/chevron-right.svg) center / contain no-repeat"></span>
+                      </x-import>
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap:16px">
+                    <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:var(--fg-muted)">За год</span><span style="font-family:var(--font-site); font-size:var(--font-size-xl); font-weight:600; font-variant-numeric:tabular-nums">{{ ay.totalTxt }}</span></div>
+                    <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:var(--fg-muted)">В среднем за месяц</span><span style="font-family:var(--font-site); font-size:var(--font-size-xl); font-weight:600; font-variant-numeric:tabular-nums">{{ ay.avgTxt }}</span></div>
+                    <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Самый затратный</span><span style="font-family:var(--font-site); font-size:var(--font-size-xl); font-weight:600">{{ ay.peakTxt }}</span></div>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); gap:{{ barGap }}px; align-items:end; height:{{ anBarsH }}px">
+                    <sc-for list="{{ ay.bars }}" as="bar" hint-placeholder-count="12">
+                      <div title="{{ bar.title }}" style="height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:stretch; gap:6px">
+                        <sc-if value="{{ showBarValues }}" hint-placeholder-val="{{ true }}">
+                          <span style="text-align:center; font-size:var(--font-size-2xs); color:var(--fg-muted); font-variant-numeric:tabular-nums; white-space:nowrap">{{ bar.short }}</span>
+                        </sc-if>
+                        <div style="height:{{ bar.h }}%; min-height:4px; border-radius:var(--radius-l2) var(--radius-l2) 2px 2px; background:{{ bar.bg }}; opacity:{{ bar.op }}; box-shadow:{{ bar.ring }}; transition:height 400ms"></div>
+                        <span style="text-align:center; font-size:var(--font-size-xs); color:{{ bar.labelColor }}; font-weight:{{ bar.labelWeight }}">{{ bar.label }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+          <!-- ============ CATEGORIES ============ -->
+          <sc-if value="{{ isCategories }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Категории" style="display:flex; flex-direction:column; gap:16px; max-width:760px; width:100%">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="sm" dc-props="{{ glass }}" hint-size="100%,100px">
+                <form onSubmit="{{ addCat }}" style="display:flex; flex-direction:column; gap:8px">
+                  <span style="font-weight:600; font-size:var(--font-size-sm)">Новая категория</span>
+                  <div style="display:flex; gap:8px">
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="Например, Подарки" value="{{ newCat }}" onChange="{{ onNewCat }}" invalid="{{ hasCatErr }}" hint-size="100%,40px"></x-import>
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" type="submit" disabled="{{ newCatEmpty }}" hint-size="110px,40px">Добавить</x-import>
+                  </div>
+                  <sc-if value="{{ hasCatErr }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size:var(--font-size-xs); font-weight:500; color:var(--fg-error)">{{ catErr }}</span>
+                  </sc-if>
+                </form>
+              </x-import>
+              <div style="border:1px solid var(--border); border-radius:var(--radius-l3); background:color-mix(in srgb, var(--bg-panel) 82%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); overflow:hidden">
+                <sc-for list="{{ catRows }}" as="c" hint-placeholder-count="6">
+                  <div style="display:flex; flex-direction:column; gap:8px; padding:12px 16px; border-top:{{ c.borderTop }}">
+                    <div style="display:flex; align-items:center; gap:12px">
+                      <span style="width:40px; height:40px; flex-shrink:0; border-radius:var(--radius-l3); background:{{ c.tint }}; display:flex; align-items:center; justify-content:center">
+                        <span style="width:20px; height:20px; background:{{ c.grad }}; -webkit-mask:url({{ c.iconUrl }}) center / contain no-repeat; mask:url({{ c.iconUrl }}) center / contain no-repeat"></span>
+                      </span>
+                      <sc-if value="{{ c.notEditing }}" hint-placeholder-val="{{ true }}">
+                        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+                          <span style="font-weight:500">{{ c.name }}</span>
+                          <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">{{ c.meta }}</span>
+                        </div>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Переименовать" variant="ghost" size="sm" onClick="{{ c.onEdit }}" hint-size="36px,36px">
+                          <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/pencil.svg) center / contain no-repeat; mask:url(icons/pencil.svg) center / contain no-repeat"></span>
+                        </x-import>
+                        <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Удалить" variant="ghost" size="sm" onClick="{{ c.onDelete }}" hint-size="36px,36px">
+                          <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/trash-2.svg) center / contain no-repeat; mask:url(icons/trash-2.svg) center / contain no-repeat"></span>
+                        </x-import>
+                      </sc-if>
+                      <sc-if value="{{ c.editing }}" hint-placeholder-val="{{ false }}">
+                        <div style="flex:1; min-width:0; display:flex; gap:6px">
+                          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" size="sm" value="{{ c.editVal }}" onChange="{{ c.onEditChange }}" hint-size="100%,36px"></x-import>
+                          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Сохранить" size="sm" onClick="{{ c.onEditSave }}" hint-size="36px,36px">
+                            <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/check.svg) center / contain no-repeat; mask:url(icons/check.svg) center / contain no-repeat"></span>
+                          </x-import>
+                          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Отмена" variant="ghost" size="sm" onClick="{{ c.onEditCancel }}" hint-size="36px,36px">
+                            <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/x.svg) center / contain no-repeat; mask:url(icons/x.svg) center / contain no-repeat"></span>
+                          </x-import>
+                        </div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ c.delErr }}" hint-placeholder-val="{{ false }}">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Alert" status="warning" variant="subtle" title="Нельзя удалить «{{ c.name }}»" description="{{ c.delErrTxt }}" hint-size="100%,72px"></x-import>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ============ PROFILE ============ -->
+          <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Профиль" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap:16px; align-items:start">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,160px">
+                <div style="display:flex; align-items:center; gap:16px">
+                  <div style="padding:3px; border-radius:9999px; background:linear-gradient(135deg, var(--pink-400), var(--purple-400), var(--cyan-300), var(--yellow-300)); display:flex">
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Avatar" name="{{ user.name }}" size="xl" color-palette="purple" hint-size="56px,56px"></x-import>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:2px; min-width:0">
+                    <span style="font-family:var(--font-site); font-size:var(--font-size-xl); font-weight:600">{{ user.name }}</span>
+                    <span style="font-size:var(--font-size-sm); color:var(--fg-muted); overflow:hidden; text-overflow:ellipsis">{{ user.email }}</span>
+                  </div>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,160px">
+                <div style="display:flex; flex-direction:column; gap:12px">
+                  <div style="display:flex; justify-content:space-between; align-items:center">
+                    <span style="font-weight:600">Баланс</span>
+                    <sc-if value="{{ notBalEdit }}" hint-placeholder-val="{{ true }}">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="outline" size="xs" onClick="{{ startBalEdit }}" hint-size="90px,32px">Изменить</x-import>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ notBalEdit }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-family:var(--font-site); font-size:var(--font-size-4xl); line-height:var(--line-height-4xl); font-weight:600; letter-spacing:-0.025em; font-variant-numeric:tabular-nums; background:linear-gradient(110deg, var(--pink-500), var(--purple-500), var(--blue-500), var(--cyan-500), var(--teal-500)); -webkit-background-clip:text; background-clip:text; color:transparent">{{ balanceTxt }}</span>
+                  </sc-if>
+                  <sc-if value="{{ balEdit }}" hint-placeholder-val="{{ false }}">
+                    <form onSubmit="{{ saveBal }}" style="display:flex; gap:8px">
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" inputMode="decimal" value="{{ balDraft }}" onChange="{{ onBalDraft }}" size="lg" hint-size="100%,44px"></x-import>
+                      <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" type="submit" size="lg" hint-size="110px,44px">Сохранить</x-import>
+                    </form>
+                  </sc-if>
+                  <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">Задаётся вручную и не меняется от трат</span>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,140px">
+                <div style="display:flex; flex-direction:column; gap:12px">
+                  <span style="font-weight:600">Тема оформления</span>
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.SegmentGroup" items="{{ themeItemsText }}" value="{{ themePref }}" onValueChange="{{ setTheme }}" dc-props="{{ fullWidth }}" hint-size="100%,40px"></x-import>
+                  <span style="font-size:var(--font-size-xs); color:var(--fg-muted)">{{ themeHint }}</span>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Card" size="{{ cardSize }}" dc-props="{{ glass }}" hint-size="100%,140px">
+                <div style="display:flex; flex-direction:column; gap:4px; margin:-8px">
+                  <button onClick="{{ goCategories }}" style="display:flex; align-items:center; gap:12px; padding:10px 8px; border:0; background:transparent; border-radius:var(--radius-l2); color:inherit; font-family:inherit; font-size:var(--font-size-sm); font-weight:500; cursor:pointer; text-align:left" style-hover="background:var(--bg-muted)">
+                    <span style="width:20px; height:20px; background:var(--fg-muted); -webkit-mask:url(icons/tags.svg) center / contain no-repeat; mask:url(icons/tags.svg) center / contain no-repeat"></span>
+                    <span style="flex:1">Категории</span>
+                    <span style="color:var(--fg-muted); font-weight:400">{{ catsCountTxt }}</span>
+                    <span style="width:16px; height:16px; background:var(--fg-muted); -webkit-mask:url(icons/chevron-right.svg) center / contain no-repeat; mask:url(icons/chevron-right.svg) center / contain no-repeat"></span>
+                  </button>
+                  <button onClick="{{ logout }}" style="display:flex; align-items:center; gap:12px; padding:10px 8px; border:0; background:transparent; border-radius:var(--radius-l2); color:var(--fg-error); font-family:inherit; font-size:var(--font-size-sm); font-weight:500; cursor:pointer; text-align:left" style-hover="background:var(--bg-error)">
+                    <span style="width:20px; height:20px; background:currentColor; -webkit-mask:url(icons/log-out.svg) center / contain no-repeat; mask:url(icons/log-out.svg) center / contain no-repeat"></span>
+                    <span style="flex:1">Выйти</span>
+                  </button>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+        </div>
+      </main>
+    </div>
+
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+      <nav style="position:fixed; left:0; right:0; bottom:0; z-index:30; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); align-items:center; height:68px; padding:0 6px env(safe-area-inset-bottom); background:color-mix(in srgb, var(--bg-panel) 80%, transparent); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border-top:1px solid var(--border-muted)">
+        <sc-for list="{{ tabsLeft }}" as="n" hint-placeholder-count="2">
+          <button onClick="{{ n.go }}" aria-current="{{ n.current }}" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; height:56px; border:0; background:transparent; color:{{ n.color }}; font-family:inherit; font-size:var(--font-size-2xs); font-weight:500; cursor:pointer">
+            <span style="width:22px; height:22px; background:{{ n.iconBg }}; -webkit-mask:url({{ n.iconUrl }}) center / contain no-repeat; mask:url({{ n.iconUrl }}) center / contain no-repeat"></span>
+            {{ n.label }}
+          </button>
+        </sc-for>
+        <div style="display:flex; justify-content:center">
+          <button onClick="{{ openNew }}" aria-label="Добавить трату" style="width:56px; height:56px; margin-top:-26px; border:0; border-radius:var(--radius-2xl); background:linear-gradient(135deg, var(--pink-400), var(--purple-400) 30%, var(--cyan-300) 65%, var(--yellow-200)); box-shadow:0 10px 24px color-mix(in srgb, var(--purple-500) 40%, transparent), 0 0 0 4px var(--bg); color:var(--gray-950); display:flex; align-items:center; justify-content:center; cursor:pointer">
+            <span style="width:26px; height:26px; background:currentColor; -webkit-mask:url(icons/plus.svg) center / contain no-repeat; mask:url(icons/plus.svg) center / contain no-repeat"></span>
+          </button>
+        </div>
+        <sc-for list="{{ tabsRight }}" as="n" hint-placeholder-count="2">
+          <button onClick="{{ n.go }}" aria-current="{{ n.current }}" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; height:56px; border:0; background:transparent; color:{{ n.color }}; font-family:inherit; font-size:var(--font-size-2xs); font-weight:500; cursor:pointer">
+            <span style="width:22px; height:22px; background:{{ n.iconBg }}; -webkit-mask:url({{ n.iconUrl }}) center / contain no-repeat; mask:url({{ n.iconUrl }}) center / contain no-repeat"></span>
+            {{ n.label }}
+          </button>
+        </sc-for>
+      </nav>
+    </sc-if>
+
+    <sc-if value="{{ appReady }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeDrawer }}" style="position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.36); opacity:{{ dw.backdropOp }}; pointer-events:{{ dw.pe }}; transition:opacity 250ms"></div>
+      <aside role="dialog" aria-modal="true" aria-label="{{ dr.title }}" style="position:fixed; z-index:60; display:flex; flex-direction:column; background:var(--bg-panel); box-shadow:var(--shadow-2xl); transition:transform 380ms cubic-bezier(0.21,1.02,0.73,1); top:{{ dw.top }}; right:0; bottom:0; left:{{ dw.left }}; width:{{ dw.width }}; border-radius:{{ dw.radius }}; transform:{{ dw.transform }}; pointer-events:{{ dw.pe }}">
+        <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; justify-content:center; padding-top:8px"><span style="width:40px; height:4px; border-radius:9999px; background:var(--bg-emphasized)"></span></div>
+        </sc-if>
+        <div style="display:flex; align-items:center; gap:12px; padding:16px 20px 12px 24px">
+          <span style="flex:1; font-family:var(--font-site); font-size:var(--font-size-xl); font-weight:600">{{ dr.title }}</span>
+          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Закрыть" variant="ghost" size="sm" onClick="{{ closeDrawer }}" hint-size="36px,36px">
+            <span style="width:18px; height:18px; background:currentColor; -webkit-mask:url(icons/x.svg) center / contain no-repeat; mask:url(icons/x.svg) center / contain no-repeat"></span>
+          </x-import>
+        </div>
+        <div style="flex:1; min-height:0; overflow:auto; padding:4px 24px 24px; display:flex; flex-direction:column; gap:20px">
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:var(--font-size-sm); font-weight:500">Сумма</span>
+            <div style="display:flex; align-items:center; gap:8px">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" variant="flushed" placeholder="0" inputMode="decimal" value="{{ dr.amount }}" onChange="{{ onDrAmount }}" dc-props="{{ bigAmountInput }}" hint-size="100%,64px"></x-import>
+              <span style="font-family:var(--font-site); font-size:36px; font-weight:600; color:var(--fg-muted)">₽</span>
+            </div>
+          </div>
+          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Описание" hint-size="100%,66px">
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="Например, Супермаркет" value="{{ dr.desc }}" onChange="{{ onDrDesc }}" hint-size="100%,40px"></x-import>
+          </x-import>
+          <div style="display:grid; grid-template-columns:minmax(0, 1.4fr) minmax(0, 1fr); gap:12px">
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Дата" hint-size="100%,66px">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" type="date" value="{{ dr.date }}" onChange="{{ onDrDate }}" hint-size="100%,40px"></x-import>
+            </x-import>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Field" label="Время" hint-size="100%,66px">
+              <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" type="time" value="{{ dr.time }}" onChange="{{ onDrTime }}" hint-size="100%,40px"></x-import>
+            </x-import>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px; padding:16px; border-radius:var(--radius-l3); background:var(--bg-subtle); border:1px solid var(--border-muted)">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+              <span style="font-size:var(--font-size-sm); font-weight:600">Разбивка по категориям</span>
+              <sc-if value="{{ dr.multi }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="ghost" size="xs" onClick="{{ splitEven }}" hint-size="90px,32px">
+                  <span style="width:14px; height:14px; background:currentColor; -webkit-mask:url(icons/divide.svg) center / contain no-repeat; mask:url(icons/divide.svg) center / contain no-repeat"></span>
+                  Поровну
+                </x-import>
+              </sc-if>
+            </div>
+            <div style="display:flex; gap:3px; height:8px">
+              <sc-for list="{{ dr.bar }}" as="seg" hint-placeholder-count="1">
+                <div style="width:{{ seg.w }}%; height:100%; border-radius:3px; background:{{ seg.bg }}; transition:width 300ms"></div>
+              </sc-for>
+            </div>
+            <sc-for list="{{ dr.rows }}" as="r" hint-placeholder-count="1">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="width:10px; height:10px; border-radius:3px; flex-shrink:0; background:{{ r.grad }}"></span>
+                <div style="flex:1; min-width:0">
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.NativeSelect" options="{{ catOptions }}" value="{{ r.cat }}" onChange="{{ r.onCat }}" hint-size="100%,40px"></x-import>
+                </div>
+                <sc-if value="{{ dr.multi }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:112px; flex-shrink:0">
+                    <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Input" placeholder="0" inputMode="decimal" value="{{ r.amount }}" onChange="{{ r.onAmount }}" dc-props="{{ rightInput }}" hint-size="100%,40px"></x-import>
+                  </div>
+                  <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.IconButton" aria-label="Убрать часть" variant="ghost" size="md" onClick="{{ r.onRemove }}" hint-size="40px,40px">
+                    <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/x.svg) center / contain no-repeat; mask:url(icons/x.svg) center / contain no-repeat"></span>
+                  </x-import>
+                </sc-if>
+              </div>
+            </sc-for>
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="outline" size="sm" onClick="{{ addSplit }}" disabled="{{ noMoreSplits }}" dc-props="{{ dashedBtn }}" hint-size="100%,36px">
+              <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/split.svg) center / contain no-repeat; mask:url(icons/split.svg) center / contain no-repeat"></span>
+              Разделить на ещё одну категорию
+            </x-import>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:var(--font-size-sm); color:{{ dr.status.color }}; font-weight:500">
+              <span style="width:16px; height:16px; flex-shrink:0; background:currentColor; -webkit-mask:url({{ dr.status.icon }}) center / contain no-repeat; mask:url({{ dr.status.icon }}) center / contain no-repeat"></span>
+              <span style="flex:1; min-width:0">{{ dr.status.text }}</span>
+              <sc-if value="{{ dr.canFill }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="subtle" color-palette="orange" size="xs" onClick="{{ fillRemainder }}" hint-size="120px,32px">Добавить остаток</x-import>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; padding:16px 24px calc(16px + env(safe-area-inset-bottom)); border-top:1px solid var(--border-muted)">
+          <sc-if value="{{ dr.isEdit }}" hint-placeholder-val="{{ false }}">
+            <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="{{ dr.delVariant }}" color-palette="red" onClick="{{ deleteTx }}" hint-size="100px,40px">
+              <span style="width:16px; height:16px; background:currentColor; -webkit-mask:url(icons/trash-2.svg) center / contain no-repeat; mask:url(icons/trash-2.svg) center / contain no-repeat"></span>
+              {{ dr.delLabel }}
+            </x-import>
+          </sc-if>
+          <div style="flex:1"></div>
+          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" variant="outline" onClick="{{ closeDrawer }}" hint-size="90px,40px">Отмена</x-import>
+          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Button" onClick="{{ saveTx }}" disabled="{{ dr.invalid }}" dc-props="{{ holoBtn }}" hint-size="120px,40px">Сохранить</x-import>
+        </div>
+      </aside>
+    </sc-if>
+
+    <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; z-index:70; left:0; right:0; bottom:{{ toastBottom }}; display:flex; justify-content:{{ toastJustify }}; padding:0 16px; pointer-events:none">
+        <div style="pointer-events:auto; width:100%; max-width:380px">
+          <x-import component-from-global-scope="ChakraUIDesignSystem_349c6d.Toast" type="{{ toast.type }}" title="{{ toast.title }}" description="{{ toast.desc }}" onClose="{{ closeToast }}" hint-size="100%,64px"></x-import>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Авто&quot;,&quot;Телефон&quot;,&quot;Планшет&quot;],&quot;default&quot;:&quot;Авто&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Предпросмотр&quot;},&quot;authScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Приложение&quot;,&quot;Вход&quot;,&quot;Регистрация&quot;],&quot;default&quot;:&quot;Приложение&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Предпросмотр&quot;},&quot;dashboardVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Бенто&quot;,&quot;Фокус&quot;],&quot;default&quot;:&quot;Бенто&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Дашборд&quot;},&quot;intensity&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Мягко&quot;,&quot;Ярко&quot;],&quot;default&quot;:&quot;Ярко&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Перелив&quot;},&quot;shimmer&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Перелив&quot;}}">
+const TODAY = '2026-10-28';
+const CUR = '2026-10';
+const MON = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+const MON_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MON_SHORT = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const WD = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+const PAL = [['orange-400','pink-500'],['cyan-300','blue-500'],['purple-400','blue-600'],['yellow-300','orange-500'],['pink-400','purple-600'],['teal-300','green-500'],['blue-300','purple-500'],['green-300','cyan-500'],['red-400','orange-300']];
+const BAR_PAL = ['pink','purple','blue','cyan','teal','green','yellow','orange','pink','purple','blue','cyan'];
+const H26 = [
+  [14200,6400,12300,3900,898,1500],[13100,5900,12300,3200,898,2400],[15800,7200,11800,4600,898,900],
+  [14600,7900,11200,5200,898,1300],[16200,8400,10400,6100,898,700],[15100,9100,10400,6800,1197,1100],
+  [17300,8800,10400,7400,1197,2600],[16100,7600,10900,5900,1197,800],[15400,7100,11600,4800,898,1900]];
+const G = {
+  vivid: 'linear-gradient(115deg, var(--pink-300) 0%, var(--purple-300) 16%, var(--blue-300) 32%, var(--cyan-300) 48%, var(--teal-300) 62%, var(--yellow-300) 78%, var(--orange-300) 88%, var(--pink-300) 100%)',
+  soft: 'linear-gradient(115deg, var(--pink-200) 0%, var(--purple-200) 16%, var(--blue-200) 32%, var(--cyan-200) 48%, var(--teal-200) 62%, var(--yellow-200) 78%, var(--orange-200) 88%, var(--pink-200) 100%)',
+  deep: 'linear-gradient(115deg, var(--pink-900) 0%, var(--purple-800) 18%, var(--blue-800) 36%, var(--cyan-900) 52%, var(--teal-800) 66%, var(--purple-900) 82%, var(--pink-900) 100%)',
+  darkVivid: 'linear-gradient(115deg, var(--pink-700) 0%, var(--purple-700) 16%, var(--blue-700) 32%, var(--cyan-800) 48%, var(--teal-700) 62%, var(--purple-800) 80%, var(--pink-700) 100%)',
+};
+const NF = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+const rub = (n) => NF.format(Math.round(n * 100) / 100) + '\u00a0₽';
+const rubShort = (n) => n >= 1000 ? (Math.round(n / 100) / 10).toString().replace('.', ',') + 'к' : String(Math.round(n));
+const parseAmt = (s) => { const v = parseFloat(String(s ?? '').replace(/\s/g, '').replace(',', '.')); return isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : 0; };
+const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const ymLabel = (ym) => { const [y, m] = ym.split('-').map(Number); return cap(MON[m - 1]) + ' ' + y; };
+const ymShift = (ym, d) => { let [y, m] = ym.split('-').map(Number); m += d; while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; } return y + '-' + String(m).padStart(2, '0'); };
+const shortDate = (d) => { const [y, m, dd] = d.split('-').map(Number); return dd + ' ' + MON_GEN[m - 1]; };
+const prevDay = (d) => { const [y, m, dd] = d.split('-').map(Number); const t = new Date(y, m - 1, dd - 1); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+const dayLabel = (d) => { const [y, m, dd] = d.split('-').map(Number); const base = dd + ' ' + MON_GEN[m - 1] + (y !== 2026 ? ' ' + y : ''); if (d === TODAY) return 'Сегодня, ' + base; if (d === prevDay(TODAY)) return 'Вчера, ' + base; return base + ', ' + WD[new Date(y, m - 1, dd).getDay()]; };
+const icon = (name, size) => React.createElement('span', { style: { display: 'inline-block', width: size || 16, height: size || 16, background: 'currentColor', WebkitMask: `url(icons/${name}.svg) center / contain no-repeat`, mask: `url(icons/${name}.svg) center / contain no-repeat` } });
+
+const CATS0 = [
+  { id: 1, name: 'Еда', icon: 'shopping-basket', pal: 0 }, { id: 2, name: 'Транспорт', icon: 'bus', pal: 1 },
+  { id: 3, name: 'Квартплата', icon: 'house', pal: 2 }, { id: 4, name: 'Кафе', icon: 'coffee', pal: 3 },
+  { id: 5, name: 'Подписки', icon: 'repeat', pal: 4 }, { id: 6, name: 'Здоровье', icon: 'heart-pulse', pal: 5 }];
+const tx = (id, desc, date, time, splits) => ({ id, desc, date, time, amount: splits.reduce((a, s) => a + s[1], 0), splits: splits.map((s) => ({ cat: s[0], amount: s[1] })) });
+const TXS0 = [
+  tx(116, 'Супермаркет', '2026-10-28', '14:30', [[1, 2540], [6, 700]]),
+  tx(115, 'Пополнение транспортной карты', '2026-10-28', '08:45', [[2, 1500]]),
+  tx(114, 'Кофейня у офиса', '2026-10-27', '19:10', [[4, 480]]),
+  tx(113, 'Такси до вокзала', '2026-10-26', '22:05', [[2, 890]]),
+  tx(112, 'Ужин с друзьями', '2026-10-25', '20:30', [[4, 3000], [2, 600]]),
+  tx(111, 'Продукты у дома', '2026-10-24', '18:40', [[1, 2180]]),
+  tx(110, 'Музыка и кино', '2026-10-22', '10:00', [[5, 599]]),
+  tx(109, 'Квартплата за октябрь', '2026-10-20', '12:15', [[3, 9870]]),
+  tx(108, 'Аптека', '2026-10-18', '16:20', [[6, 1260]]),
+  tx(107, 'Гипермаркет', '2026-10-15', '13:05', [[1, 5450], [6, 1000]]),
+  tx(106, 'Бензин', '2026-10-12', '09:30', [[2, 3200]]),
+  tx(105, 'Облачное хранилище', '2026-10-10', '07:00', [[5, 299]]),
+  tx(104, 'Рынок', '2026-10-08', '11:20', [[1, 1840]]),
+  tx(103, 'Электричество и интернет', '2026-10-05', '19:00', [[3, 2350]]),
+  tx(102, 'Бизнес-ланч', '2026-10-03', '13:30', [[4, 650]]),
+  tx(101, 'Каршеринг', '2026-10-01', '18:10', [[2, 1120]])];
+const BUD0 = [
+  { id: 1, ym: '2026-10', cat: null, limit: 60000 }, { id: 2, ym: '2026-10', cat: 1, limit: 15000 },
+  { id: 3, ym: '2026-10', cat: 2, limit: 8000 }, { id: 4, ym: '2026-10', cat: 3, limit: 12500 },
+  { id: 5, ym: '2026-10', cat: 4, limit: 4000 }, { id: 6, ym: '2026-10', cat: 5, limit: 1000 },
+  { id: 7, ym: '2026-09', cat: null, limit: 55000 }, { id: 8, ym: '2026-09', cat: 1, limit: 15000 },
+  { id: 9, ym: '2026-09', cat: 2, limit: 8000 }, { id: 10, ym: '2026-09', cat: 4, limit: 5000 }];
+const NAV = [
+  { id: 'dashboard', label: 'Обзор', icon: 'layout-dashboard' }, { id: 'transactions', label: 'Операции', icon: 'arrow-left-right' },
+  { id: 'budgets', label: 'Бюджеты', icon: 'piggy-bank' }, { id: 'analytics', label: 'Аналитика', icon: 'chart-pie' },
+  { id: 'categories', label: 'Категории', icon: 'tags' }, { id: 'profile', label: 'Профиль', icon: 'user' }];
+const HOLO_ICON = 'linear-gradient(135deg, var(--pink-500), var(--purple-500) 40%, var(--cyan-500) 75%, var(--teal-400))';
+
+class Component extends DCLogic {
+  rootRef = React.createRef();
+  scrollRef = React.createRef();
+  applyAuthProp() { const v = this.props.authScreen ?? 'Приложение'; this.setState({ authed: v === 'Приложение', authMode: v === 'Регистрация' ? 'register' : 'login', authErr: '', drOpen: false }); }
+  state = (() => {
+    let pref = 'system', scr = 'dashboard';
+    try { pref = localStorage.getItem('ct-theme') || 'system'; scr = localStorage.getItem('ct-screen') || 'dashboard'; } catch (e) {}
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    return {
+      w, sysDark: !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches),
+      themePref: pref, screen: scr === 'auth' ? 'dashboard' : scr, authed: true, authMode: 'login',
+      auth: { name: '', email: 'alex@example.com', password: '' }, authErr: '',
+      cats: CATS0, txs: TXS0, budgets: BUD0, user: { name: 'Алекс', email: 'alex@example.com', balance: 152400 },
+      f: { q: '', cat: '', min: '', max: '', from: '', to: '' }, filtersOpen: w >= 1100,
+      dr: this.blankDraft(), drOpen: false,
+      bMonth: CUR, bForm: null, bEdit: null, anPreset: 'month', anYear: 2026,
+      newCat: '', catErr: '', catEdit: null, catDelErr: null, balEdit: false, balDraft: '', toast: null,
+    };
+  })();
+
+  blankDraft() { return { mode: 'create', id: null, amount: '', desc: '', date: TODAY, time: '12:00', splits: [{ cat: '1', amount: '' }], confirmDel: false }; }
+
+  componentDidMount() {
+    if (window.ResizeObserver && this.rootRef.current) {
+      this.ro = new ResizeObserver((es) => { const w = Math.round(es[0].contentRect.width); if (w && w !== this.state.w) this.setState({ w }); });
+      this.ro.observe(this.rootRef.current); this.roOn = true;
+    }
+    if (window.matchMedia) { this.mql = window.matchMedia('(prefers-color-scheme: dark)'); this.onMql = (e) => this.setState({ sysDark: e.matches }); this.mql.addEventListener && this.mql.addEventListener('change', this.onMql); }
+    this.onWin = () => { const r = this.rootRef.current; const w = r ? r.clientWidth : window.innerWidth; if (w && w !== this.state.w) this.setState({ w }); };
+    window.addEventListener('resize', this.onWin);
+    this.onKey = (e) => { if (e.key === 'Escape' && this.state.drOpen) this.setState({ drOpen: false }); };
+    window.addEventListener('keydown', this.onKey);
+    this.applyTheme();
+    if ((this.props.authScreen ?? 'Приложение') !== 'Приложение') this.applyAuthProp();
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps && prevProps.authScreen !== this.props.authScreen) this.applyAuthProp();
+    if (prevProps && prevProps.device !== this.props.device && this.scrollRef.current) this.scrollRef.current.scrollTop = 0;
+    if (!this.roOn && window.ResizeObserver && this.rootRef.current) { this.ro = this.ro || new ResizeObserver((es) => { const w = Math.round(es[0].contentRect.width); if (w && w !== this.state.w) this.setState({ w }); }); this.ro.observe(this.rootRef.current); this.roOn = true; }
+    this.applyTheme();
+    try { localStorage.setItem('ct-theme', this.state.themePref); localStorage.setItem('ct-screen', this.state.authed ? this.state.screen : 'auth'); } catch (e) {}
+  }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); this.mql && this.mql.removeEventListener && this.mql.removeEventListener('change', this.onMql); window.removeEventListener('keydown', this.onKey); window.removeEventListener('resize', this.onWin); clearTimeout(this.toastT); }
+  isDark() { const p = this.state.themePref; return p === 'dark' || (p === 'system' && this.state.sysDark); }
+  applyTheme() { const d = this.isDark(); const h = document.documentElement; if (h.classList.contains('dark') !== d) h.classList.toggle('dark', d); h.style.colorScheme = d ? 'dark' : 'light'; }
+
+  go(screen) { this.setState({ screen, catDelErr: null, bEdit: null }); const r = this.rootRef.current; window.scrollTo && window.scrollTo(0, 0); const sc = this.scrollRef.current; if (sc) sc.scrollTop = 0; }
+  showToast(title, desc, type) { clearTimeout(this.toastT); this.setState({ toast: { title, desc: desc || '', type: type || 'success' } }); this.toastT = setTimeout(() => this.setState({ toast: null }), 2800); }
+  setDr(patch) { this.setState((s) => ({ dr: { ...s.dr, ...patch } })); }
+  updSplit(i, patch) { this.setState((s) => ({ dr: { ...s.dr, splits: s.dr.splits.map((x, j) => (j === i ? { ...x, ...patch } : x)) } })); }
+
+  catView(c) { const p = PAL[c.pal % PAL.length]; const c1 = `var(--${p[0]})`, c2 = `var(--${p[1]})`; return { ...c, c1, c2, grad: `linear-gradient(135deg, ${c1}, ${c2})`, tint: `color-mix(in srgb, ${c2} 14%, transparent)`, iconUrl: `icons/${c.icon}.svg` }; }
+
+  monthCat(ym) {
+    const [y, m] = ym.split('-').map(Number); const base = {};
+    if (y === 2026 && m <= 9) H26[m - 1].forEach((v, i) => (base[i + 1] = v));
+    else if (y === 2025) { const src = H26[Math.min(m - 1, 8)]; const k = 0.84 + ((m * 37) % 9) / 100; src.forEach((v, i) => (base[i + 1] = Math.round((v * k) / 10) * 10)); }
+    this.state.txs.forEach((t) => { if (t.date.startsWith(ym)) t.splits.forEach((s) => (base[s.cat] = (base[s.cat] || 0) + s.amount)); });
+    return base;
+  }
+
+  holoLayer(key, kind) {
+    const anim = this.props.shimmer ?? true; const vivid = (this.props.intensity ?? 'Ярко') === 'Ярко';
+    const animation = anim ? 'ct-flow 12s ease-in-out infinite alternate' + (vivid ? ', ct-hue 30s linear infinite' : '') : 'none';
+    return React.createElement('div', { key, 'aria-hidden': true, style: { position: 'absolute', inset: 0, borderRadius: 'inherit', overflow: 'hidden', pointerEvents: 'none', zIndex: 0 } },
+      React.createElement('div', { style: { position: 'absolute', inset: 0, background: G[kind], backgroundSize: '300% 300%', animation } }),
+      React.createElement('div', { style: { position: 'absolute', inset: 0, background: 'radial-gradient(90% 120% at 0% 0%, rgba(255,255,255,0.45), transparent 55%), radial-gradient(60% 90% at 100% 100%, rgba(255,255,255,0.18), transparent 60%)', mixBlendMode: 'soft-light' } }));
+  }
+  ambientLayer(isDark, vivid) {
+    const anim = this.props.shimmer ?? true;
+    const blob = (k, pos, size, color) => React.createElement('div', { key: k, style: { position: 'absolute', ...pos, width: size, height: size, borderRadius: '50%', background: `radial-gradient(circle, ${color}, transparent 65%)` } });
+    const op = isDark ? (vivid ? 0.55 : 0.32) : (vivid ? 0.7 : 0.4);
+    return React.createElement('div', { key: 'amb', 'aria-hidden': true, style: { position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', opacity: op, animation: anim ? 'ct-hue 40s linear infinite' : 'none' } },
+      blob('a', { top: '-22%', right: '-12%' }, 720, isDark ? 'var(--purple-800)' : 'var(--pink-200)'),
+      blob('b', { top: '18%', left: '-18%' }, 620, isDark ? 'var(--cyan-900)' : 'var(--cyan-100)'),
+      blob('c', { bottom: '-26%', right: '18%' }, 680, isDark ? 'var(--teal-900)' : 'var(--yellow-100)'));
+  }
+
+  renderVals() {
+    const s = this.state, P = this.props;
+    const dev = P.device ?? 'Авто'; const framed = dev !== 'Авто';
+    const frame = dev === 'Телефон' ? { w: 390, h: 844, r: 44 } : dev === 'Планшет' ? { w: 820, h: 1080, r: 28 } : null;
+    const vh = framed ? frame.h + 'px' : '100vh';
+    const w = s.w || 1280;
+    const isMobile = w < 720, isDesktop = w >= 1100, notMobile = !isMobile;
+    const isDark = this.isDark();
+    const vivid = (P.intensity ?? 'Ярко') === 'Ярко';
+    const variant = (P.dashboardVariant ?? 'Бенто') === 'Фокус' ? 'focus' : 'bento';
+    const cats = s.cats.map((c) => this.catView(c));
+    const catMap = {}; cats.forEach((c) => (catMap[c.id] = c));
+    const heroKind = isDark ? (vivid ? 'darkVivid' : 'deep') : (vivid ? 'vivid' : 'soft');
+    const heroFg = isDark ? 'white' : 'var(--gray-950)';
+    const heroMuted = isDark ? 'rgba(255,255,255,0.78)' : 'rgba(9,9,11,0.68)';
+
+    // ---- current month summary (GET /v1/analytics/summary)
+    const ct = this.monthCat(CUR); const spent = sum(ct);
+    const ovB = s.budgets.find((b) => b.ym === CUR && b.cat == null);
+    const limit = ovB ? ovB.limit : 0; const avail = limit - spent; const pct = limit ? (spent / limit) * 100 : 0;
+    const daysLeft = 31 - 28 + 1;
+    const m = {
+      spentTxt: rub(spent), limitTxt: limit ? rub(limit) : '—', availTxt: rub(Math.max(avail, 0)), pctW: Math.min(100, pct), pctTxt: Math.round(pct) + '%',
+      perDayTxt: rub(Math.max(avail, 0) / daysLeft), daysLeftTxt: `ещё ${daysLeft} ${plural(daysLeft, 'день', 'дня', 'дней')}`,
+    };
+    const legendCats = cats.filter((c) => ct[c.id] > 0).sort((a, b) => ct[b.id] - ct[a.id]);
+    const legend = legendCats.map((c) => ({ name: c.name, grad: c.grad, pct: spent ? (ct[c.id] / spent) * 100 : 0, pctTxt: spent ? Math.round((ct[c.id] / spent) * 100) + '%' : '0%', amountTxt: rub(ct[c.id]) }));
+    const donut = (list, totals, total) => {
+      if (!total) return 'var(--bg-muted)';
+      let acc = 0; const parts = [];
+      list.forEach((c) => { const a = acc, b = acc + (totals[c.id] / total) * 100; const gap = Math.min(0.8, (b - a) / 3); parts.push(`${c.c1} ${a}%`, `${c.c2} ${b - gap}%`, `transparent ${b - gap}%`, `transparent ${b}%`); acc = b; });
+      return `conic-gradient(from -90deg, ${parts.join(', ')})`;
+    };
+    const donutBg = donut(legendCats, ct, spent);
+
+    const bStatus = (b) => { const mc = this.monthCat(b.ym); const sp = b.cat == null ? sum(mc) : (mc[b.cat] || 0); return { sp, av: b.limit - sp, pc: b.limit ? (sp / b.limit) * 100 : 0 }; };
+    const budgetView = (b) => {
+      const c = catMap[b.cat]; const st = bStatus(b); const over = st.av < 0; const warn = !over && st.pc >= 85;
+      const ringP = Math.min(100, st.pc);
+      const editing = s.bEdit && s.bEdit.id === b.id;
+      return {
+        id: b.id, name: c ? c.name : 'Общий', iconUrl: c ? c.iconUrl : 'icons/wallet.svg', grad: c ? c.grad : HOLO_ICON, tint: c ? c.tint : 'var(--bg-muted)',
+        spentTxt: rub(st.sp), limitTxt: rub(b.limit), pctW: Math.min(100, st.pc), pctTxt: Math.round(st.pc) + '%',
+        barBg: over ? 'linear-gradient(90deg, var(--red-400), var(--red-600))' : c ? `linear-gradient(90deg, ${c.c1}, ${c.c2})` : HOLO_ICON,
+        ringBg: over ? 'conic-gradient(var(--red-500) 0 100%)' : `conic-gradient(${c ? c.c1 : 'var(--pink-400)'} 0%, ${c ? c.c2 : 'var(--cyan-400)'} ${ringP}%, var(--bg-emphasized) ${ringP}% 100%)`,
+        statusTxt: over ? `Перерасход ${rub(-st.av)}` : `Осталось ${rub(st.av)}`,
+        statusShort: over ? `−${rub(-st.av)}` : warn ? `${Math.round(st.pc)}% · осталось ${rub(st.av)}` : `Осталось ${rub(st.av)}`,
+        statusColor: over ? 'var(--fg-error)' : warn ? 'var(--fg-warning)' : 'var(--fg-muted)', statusWeight: over || warn ? 600 : 400,
+        badgePalette: over ? 'red' : warn ? 'orange' : 'green',
+        editing: !!editing, editVal: editing ? s.bEdit.val : '',
+        onEditStart: () => this.setState({ bEdit: { id: b.id, val: String(b.limit) } }),
+        onEditChange: (e) => this.setState({ bEdit: { id: b.id, val: e.target.value } }),
+        onEditSave: () => { const v = parseAmt(s.bEdit && s.bEdit.val); if (!v) return; this.setState((x) => ({ budgets: x.budgets.map((y) => (y.id === b.id ? { ...y, limit: v } : y)), bEdit: null })); this.showToast('Лимит обновлён', `${c ? c.name : 'Общий бюджет'}: ${rub(v)}`); },
+        onEditCancel: () => this.setState({ bEdit: null }),
+        onDelete: () => { this.setState((x) => ({ budgets: x.budgets.filter((y) => y.id !== b.id) })); this.showToast('Бюджет удалён', c ? c.name : 'Общий бюджет', 'info'); },
+      };
+    };
+    const curCatBudgets = s.budgets.filter((b) => b.ym === CUR && b.cat != null && catMap[b.cat]).sort((a, b) => catMap[a.cat].name.localeCompare(catMap[b.cat].name, 'ru'));
+    const budgetRows = curCatBudgets.map(budgetView);
+
+    // ---- transactions
+    const sorted = [...s.txs].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+    const txView = (t) => {
+      const sp = t.splits.map((x) => ({ ...x, c: catMap[x.cat] })).filter((x) => x.c);
+      const multi = sp.length > 1; const a = sp[0] && sp[0].c, b = sp[1] && sp[1].c;
+      return {
+        id: t.id, desc: t.desc, amountTxt: rub(t.amount), time: t.time, metaDate: shortDate(t.date), multi,
+        splitCountTxt: `${sp.length} ${plural(sp.length, 'часть', 'части', 'частей')}`,
+        tint: a ? a.tint : 'var(--bg-muted)', grad: multi ? `linear-gradient(135deg, ${a.c1}, ${b.c2})` : a ? a.grad : HOLO_ICON,
+        iconUrl: multi ? 'icons/split.svg' : a ? a.iconUrl : 'icons/receipt.svg',
+        chips: sp.map((x) => ({ label: multi && !isMobile ? `${x.c.name} · ${rub(x.amount)}` : x.c.name, grad: x.c.grad })), showSplitBadge: multi && !isMobile,
+        open: () => this.openEdit(t.id),
+      };
+    };
+    const recent = sorted.slice(0, 6).map(txView);
+    const groupBy = (list) => { const out = []; list.forEach((t) => { let g = out[out.length - 1]; if (!g || g.date !== t.date) { g = { date: t.date, label: dayLabel(t.date), total: 0, items: [] }; out.push(g); } g.total += t.amount; g.items.push(txView(t)); }); return out.map((g) => ({ ...g, totalTxt: rub(g.total) })); };
+    const feedGroups = groupBy(sorted.slice(0, 7));
+    const f = s.f; const fMin = parseAmt(f.min), fMax = parseAmt(f.max); const q = f.q.trim().toLowerCase();
+    const filtered = sorted.filter((t) => (!q || t.desc.toLowerCase().includes(q)) && (!f.cat || t.splits.some((x) => String(x.cat) === f.cat)) && (!fMin || t.amount >= fMin) && (!fMax || t.amount <= fMax) && (!f.from || t.date >= f.from) && (!f.to || t.date <= f.to));
+    const activeFilterCount = ['cat', 'min', 'max', 'from', 'to'].filter((k) => f[k]).length;
+    const fTotal = filtered.reduce((a, t) => a + t.amount, 0);
+    const curCount = s.txs.filter((t) => t.date.startsWith(CUR)).length;
+
+    // ---- yearly bars (GET /v1/analytics/monthly)
+    const yearData = (year) => {
+      const totals = MON.map((_, i) => sum(this.monthCat(year + '-' + String(i + 1).padStart(2, '0'))));
+      const max = Math.max(1, ...totals); const nonZero = totals.filter((v) => v > 0);
+      const avg = nonZero.length ? nonZero.reduce((a, b) => a + b, 0) / nonZero.length : 0;
+      const peakI = totals.indexOf(Math.max(...totals));
+      const bars = totals.map((v, i) => {
+        const isCur = year === 2026 && i === 9; const future = year === 2026 && i > 9 && v === 0; const h = BAR_PAL[i];
+        return {
+          label: MON_SHORT[i], h: future ? 0 : (v / max) * 100, short: v ? rubShort(v) : '', title: `${cap(MON[i])} ${year}: ${rub(v)}`,
+          bg: isCur ? 'linear-gradient(0deg, var(--pink-400), var(--purple-400) 35%, var(--cyan-300) 70%, var(--yellow-200))' : future ? 'var(--bg-muted)' : `linear-gradient(0deg, var(--${h}-500), var(--${BAR_PAL[(i + 2) % 12]}-300))`,
+          op: isCur || future ? 1 : 0.55, ring: isCur ? '0 0 0 2px var(--bg-panel), 0 0 0 3px var(--purple-400)' : 'none',
+          labelColor: isCur ? 'var(--fg)' : 'var(--fg-muted)', labelWeight: isCur ? 600 : 400,
+        };
+      });
+      return { bars, totalTxt: rub(totals.reduce((a, b) => a + b, 0)), avgTxt: rub(avg), peakTxt: nonZero.length ? cap(MON[peakI]) + ' · ' + rubShort(totals[peakI]) + ' ₽' : '—' };
+    };
+    const yr = yearData(2026);
+    const ay = yearData(s.anYear);
+
+    // ---- analytics by category (GET /v1/analytics/by-category)
+    const presetMonths = s.anPreset === 'month' ? [CUR] : s.anPreset === 'quarter' ? [ymShift(CUR, -2), ymShift(CUR, -1), CUR] : MON.map((_, i) => '2026-' + String(i + 1).padStart(2, '0'));
+    const anTot = {}; presetMonths.forEach((ym) => { const mc = this.monthCat(ym); Object.keys(mc).forEach((k) => (anTot[k] = (anTot[k] || 0) + mc[k])); });
+    const anTotal = sum(anTot); const anCats = cats.filter((c) => anTot[c.id] > 0).sort((a, b) => anTot[b.id] - anTot[a.id]);
+    const anMax = anCats.length ? anTot[anCats[0].id] : 1;
+    const periodTxt = s.anPreset === 'month' ? '1 — 31 октября 2026' : s.anPreset === 'quarter' ? '1 августа — 31 октября 2026' : '1 января — 31 декабря 2026';
+    const an = { totalTxt: rub(anTotal), periodTxt, donutBg: donut(anCats, anTot, anTotal), rows: anCats.map((c) => ({ name: c.name, grad: c.grad, tint: c.tint, iconUrl: c.iconUrl, amountTxt: rub(anTot[c.id]), pctTxt: Math.round((anTot[c.id] / anTotal) * 100) + '%', w: (anTot[c.id] / anMax) * 100 })) };
+
+    // ---- budgets screen
+    const bm = s.bMonth;
+    const bOverall = s.budgets.find((b) => b.ym === bm && b.cat == null);
+    const bCatList = s.budgets.filter((b) => b.ym === bm && b.cat != null && catMap[b.cat]).sort((a, b) => catMap[a.cat].name.localeCompare(catMap[b.cat].name, 'ru'));
+    const budgetedIds = bCatList.map((b) => b.cat);
+    const unbudgetedCats = cats.filter((c) => !budgetedIds.includes(c.id));
+    const bFormOptions = [...(bOverall ? [] : [{ value: 'overall', label: 'Общий бюджет на месяц' }]), ...unbudgetedCats.map((c) => ({ value: String(c.id), label: c.name }))];
+    let ov = {};
+    if (bOverall) {
+      const st = bStatus(bOverall); const editing = s.bEdit && s.bEdit.id === bOverall.id;
+      ov = { limitTxt: rub(bOverall.limit), spentTxt: rub(st.sp), availTxt: rub(Math.abs(st.av)), availLabel: st.av < 0 ? 'Перерасход' : 'Осталось', pctW: Math.min(100, st.pc), editing: !!editing, editVal: editing ? s.bEdit.val : '', ...(() => { const v = budgetView(bOverall); return { onEditStart: v.onEditStart, onEditChange: v.onEditChange, onEditSave: v.onEditSave, onEditCancel: v.onEditCancel }; })() };
+    }
+    const openBFormWith = (cat) => this.setState({ bForm: { cat, limit: '' } });
+
+    // ---- drawer
+    const d = s.dr; const total = parseAmt(d.amount); const multi = d.splits.length > 1;
+    const amts = d.splits.map((x) => parseAmt(x.amount)); const sSum = amts.reduce((a, b) => a + b, 0); const rem = Math.round((total - sSum) * 100) / 100;
+    let status; let valid = false;
+    if (!total) status = { icon: 'icons/circle-alert.svg', color: 'var(--fg-muted)', text: 'Введите сумму траты' };
+    else if (!multi) { const c = catMap[+d.splits[0].cat]; status = { icon: 'icons/circle-check.svg', color: 'var(--fg-success)', text: `Вся сумма — в категории «${c ? c.name : '—'}»` }; valid = true; }
+    else if (amts.some((a) => !a)) status = { icon: 'icons/circle-alert.svg', color: 'var(--fg-warning)', text: rem > 0 ? `Укажите суммы частей · осталось ${rub(rem)}` : 'Укажите сумму для каждой части' };
+    else if (rem > 0) status = { icon: 'icons/circle-alert.svg', color: 'var(--fg-warning)', text: `Осталось распределить ${rub(rem)}` };
+    else if (rem < 0) status = { icon: 'icons/triangle-alert.svg', color: 'var(--fg-error)', text: `Части больше суммы на ${rub(-rem)}` };
+    else { status = { icon: 'icons/circle-check.svg', color: 'var(--fg-success)', text: 'Сумма частей совпадает с суммой траты' }; valid = true; }
+    if (!d.desc.trim() && valid) { valid = false; status = { icon: 'icons/circle-alert.svg', color: 'var(--fg-muted)', text: 'Добавьте описание траты' }; }
+    const usedCats = d.splits.map((x) => String(x.cat));
+    const barDen = Math.max(total, sSum) || 1;
+    const drBar = !multi ? [{ w: 100, bg: catMap[+d.splits[0].cat] ? catMap[+d.splits[0].cat].grad : 'var(--bg-muted)' }]
+      : [...d.splits.map((x, i) => ({ w: (amts[i] / barDen) * 100, bg: catMap[+x.cat] ? `linear-gradient(90deg, ${catMap[+x.cat].c1}, ${catMap[+x.cat].c2})` : 'var(--bg-muted)' })).filter((x) => x.w > 0), ...(rem > 0 ? [{ w: (rem / barDen) * 100, bg: 'repeating-linear-gradient(135deg, var(--bg-emphasized) 0 4px, var(--bg-muted) 4px 8px)' }] : [])];
+    const dr = {
+      title: d.mode === 'edit' ? 'Редактирование траты' : 'Новая трата', amount: d.amount, desc: d.desc, date: d.date, time: d.time, multi, isEdit: d.mode === 'edit',
+      delVariant: d.confirmDel ? 'solid' : 'ghost', delLabel: d.confirmDel ? 'Точно удалить?' : 'Удалить',
+      invalid: !valid, status, canFill: multi && rem > 0, bar: drBar,
+      rows: d.splits.map((x, i) => ({ cat: String(x.cat), amount: x.amount, grad: catMap[+x.cat] ? catMap[+x.cat].grad : 'var(--bg-muted)', onCat: (e) => this.updSplit(i, { cat: e.target.value }), onAmount: (e) => this.updSplit(i, { amount: e.target.value }), onRemove: () => this.setState((st) => { const sp = st.dr.splits.filter((_, j) => j !== i); if (sp.length === 1) sp[0] = { ...sp[0], amount: '' }; return { dr: { ...st.dr, splits: sp } }; }) })),
+    };
+    const dw = isMobile
+      ? { top: framed ? '44px' : '6vh', left: '0', width: 'auto', radius: 'var(--radius-2xl) var(--radius-2xl) 0 0', transform: s.drOpen ? 'translateY(0)' : 'translateY(105%)' }
+      : { top: '0', left: 'auto', width: 'min(480px, 100vw)', radius: '0', transform: s.drOpen ? 'translateX(0)' : 'translateX(105%)' };
+    dw.backdropOp = s.drOpen ? 1 : 0; dw.pe = s.drOpen ? 'auto' : 'none';
+
+    // ---- categories
+    const splitCount = {}; s.txs.forEach((t) => t.splits.forEach((x) => (splitCount[x.cat] = (splitCount[x.cat] || 0) + 1)));
+    const catRows = cats.map((c, i) => {
+      const n = splitCount[c.id] || 0; const editing = s.catEdit && s.catEdit.id === c.id;
+      return {
+        ...c, borderTop: i ? '1px solid var(--border-muted)' : '0', meta: n ? `${n} ${plural(n, 'часть траты', 'части трат', 'частей трат')} · ${rub(ct[c.id] || 0)} в октябре` : 'Пока без трат',
+        editing: !!editing, notEditing: !editing, editVal: editing ? s.catEdit.val : '', delErr: s.catDelErr === c.id,
+        delErrTxt: `К категории привязано ${n} ${plural(n, 'часть траты', 'части трат', 'частей трат')}. Перенесите их в другую категорию — так история останется целой.`,
+        onEdit: () => this.setState({ catEdit: { id: c.id, val: c.name }, catDelErr: null }),
+        onEditChange: (e) => this.setState({ catEdit: { id: c.id, val: e.target.value } }),
+        onEditSave: () => { const v = (s.catEdit && s.catEdit.val || '').trim(); if (!v) return; this.setState((x) => ({ cats: x.cats.map((y) => (y.id === c.id ? { ...y, name: v } : y)), catEdit: null })); },
+        onEditCancel: () => this.setState({ catEdit: null }),
+        onDelete: () => { if (n) { this.setState({ catDelErr: c.id }); return; } this.setState((x) => ({ cats: x.cats.filter((y) => y.id !== c.id), budgets: x.budgets.filter((b) => b.cat !== c.id), catDelErr: null })); this.showToast('Категория удалена', c.name, 'info'); },
+      };
+    });
+
+    // ---- navigation
+    const navView = (n) => { const on = s.screen === n.id; return { ...n, current: on ? 'page' : undefined, bg: on ? 'color-mix(in srgb, var(--bg-emphasized) 60%, transparent)' : 'transparent', color: on ? 'var(--fg)' : 'var(--fg-muted)', iconBg: on ? HOLO_ICON : 'currentColor', iconUrl: `icons/${n.icon}.svg`, go: () => this.go(n.id) }; };
+    const titles = { dashboard: ['Обзор', 'Октябрь 2026 · привет, ' + s.user.name], transactions: ['Операции', `${curCount} ${plural(curCount, 'трата', 'траты', 'трат')} в октябре`], budgets: ['Бюджеты', 'Лимиты трат на месяц'], analytics: ['Аналитика', 'Куда уходят деньги'], categories: ['Категории', 'Для разбивки трат'], profile: ['Профиль', s.user.email] };
+    const [title, subtitle] = titles[s.screen] || titles.dashboard;
+    const themeIcon = { light: 'sun', dark: 'moon', system: 'monitor' };
+    const holoBtnStyle = { background: 'linear-gradient(115deg, var(--pink-300), var(--purple-300) 30%, var(--cyan-300) 65%, var(--yellow-200))', color: 'var(--gray-950)', boxShadow: '0 4px 14px color-mix(in srgb, var(--purple-500) 30%, transparent)', fontWeight: 600 };
+    const glassStyle = { background: 'color-mix(in srgb, var(--bg-panel) 82%, transparent)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' };
+
+    return {
+      rootRef: this.rootRef, scrollRef: this.scrollRef, vh,
+      stageBg: framed ? 'var(--bg-muted)' : 'transparent', stagePad: framed ? '40px 16px' : '0', frameW: framed ? frame.w + 'px' : '100%', frameH: framed ? frame.h + 'px' : 'auto',
+      frameTf: framed ? 'translateZ(0)' : 'none', frameOv: framed ? 'hidden' : 'visible', frameR: framed ? frame.r + 'px' : '0',
+      frameShadow: framed ? '0 0 0 10px var(--gray-900), 0 0 0 11px var(--gray-700), var(--shadow-2xl)' : 'none',
+      scrollH: framed ? '100%' : 'auto', scrollOv: framed ? 'hidden auto' : 'visible', scrollbarW: dev === 'Телефон' ? 'none' : 'auto',
+      ambient: this.ambientLayer(isDark, vivid),
+      heroHolo: this.holoLayer('hero', heroKind), authHolo: this.holoLayer('auth', heroKind), budgetHolo: this.holoLayer('bud', heroKind),
+      heroFg, heroMuted, heroChipBg: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.45)', heroTrack: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(9,9,11,0.12)', heroFill: isDark ? 'white' : 'var(--gray-950)',
+      logoBg: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(9,9,11,0.9)', logoInk: isDark ? 'white' : 'white',
+      // layout
+      isMobile, notMobile, amountMinW: isMobile ? '0' : '72px', showSidebar: notMobile, showNavLabels: isDesktop, sidebarW: isDesktop ? 248 : 76, sidebarPadX: isDesktop ? 16 : 12, logoPadX: isDesktop ? 6 : 10, navJustify: isDesktop ? 'flex-start' : 'center',
+      hPad: isDesktop ? 40 : 24, pagePad: isMobile ? '16px 16px 104px' : isDesktop ? '28px 40px 56px' : '24px 24px 48px',
+      heroPad: isMobile ? '20px' : '28px', heroNumSize: isMobile ? '40px' : '56px', statNumSize: isMobile ? 'var(--font-size-lg)' : 'var(--font-size-3xl)',
+      cardSize: isMobile ? 'sm' : 'md', barGap: isMobile ? 4 : 10, ringSize: isMobile ? 176 : 200, anDonutSize: isMobile ? 200 : 240, anBarsH: isMobile ? 200 : 260, showBarValues: notMobile,
+      authDir: isMobile ? 'column' : 'row', authPanelFlex: isMobile ? '0 0 auto' : '1.1 1 0', authPanelMinH: isMobile ? '300px' : vh, authPanelPad: isMobile ? '24px 20px 32px' : '40px 48px', authHeadSize: isMobile ? 'var(--font-size-4xl)' : 'var(--font-size-6xl)',
+      glass: { style: glassStyle }, glassFill: { style: { ...glassStyle, flex: '1 1 auto' } }, holoBtn: { style: holoBtnStyle }, holoBtnFull: { style: { ...holoBtnStyle, width: '100%' } }, fullWidth: { style: { width: '100%', display: 'flex' } },
+      searchInput: { style: { paddingLeft: 38, background: 'color-mix(in srgb, var(--bg-panel) 82%, transparent)' } },
+      bigAmountInput: { style: { fontSize: 40, height: 64, fontFamily: 'var(--font-site)', fontWeight: 600, letterSpacing: '-0.02em' }, autoComplete: 'off' },
+      rightInput: { style: { textAlign: 'right', fontVariantNumeric: 'tabular-nums' } },
+      dashedBtn: { style: { width: '100%', borderStyle: 'dashed', borderColor: 'var(--border-emphasized)' } },
+      heroInput: { style: { background: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.6)', borderColor: 'transparent', color: heroFg } },
+      heroGhost: { style: { color: heroFg } },
+      // theme
+      themePref: s.themePref, themeIconUrl: `icons/${themeIcon[s.themePref]}.svg`,
+      themeItems: [{ value: 'light', label: React.createElement('span', { title: 'Светлая', style: { display: 'inline-flex' } }, icon('sun')) }, { value: 'dark', label: React.createElement('span', { title: 'Тёмная', style: { display: 'inline-flex' } }, icon('moon')) }, { value: 'system', label: React.createElement('span', { title: 'Системная', style: { display: 'inline-flex' } }, icon('monitor')) }],
+      themeItemsText: [{ value: 'light', label: 'Светлая' }, { value: 'dark', label: 'Тёмная' }, { value: 'system', label: 'Системная' }],
+      themeHint: s.themePref === 'system' ? `Повторяет настройки устройства — сейчас ${s.sysDark ? 'тёмная' : 'светлая'}` : 'Выбрано вручную',
+      setTheme: (v) => this.setState({ themePref: v }),
+      cycleTheme: () => this.setState((x) => ({ themePref: { light: 'dark', dark: 'system', system: 'light' }[x.themePref] })),
+      // auth
+      showAuth: !s.authed, showApp: s.authed, appReady: true, authMode: s.authMode, isRegister: s.authMode === 'register', auth: s.auth,
+      authModes: [{ value: 'login', label: 'Вход' }, { value: 'register', label: 'Регистрация' }],
+      authTitle: s.authMode === 'login' ? 'С возвращением' : 'Создать аккаунт', authSub: s.authMode === 'login' ? 'Войдите, чтобы продолжить учёт трат' : 'Пара полей — и можно вести учёт', authCta: s.authMode === 'login' ? 'Войти' : 'Создать аккаунт',
+      hasAuthErr: !!s.authErr, authErr: s.authErr,
+      setAuthMode: (v) => this.setState({ authMode: v, authErr: '' }),
+      onAuthName: (e) => this.setState({ auth: { ...s.auth, name: e.target.value } }), onAuthEmail: (e) => this.setState({ auth: { ...s.auth, email: e.target.value } }), onAuthPassword: (e) => this.setState({ auth: { ...s.auth, password: e.target.value }, authErr: '' }),
+      submitAuth: (e) => { e.preventDefault(); const a = s.auth; if (!a.email.includes('@')) return this.setState({ authErr: 'Проверьте email' }); if (s.authMode === 'register' && (a.name.trim().length < 2 || a.name.trim().length > 20)) return this.setState({ authErr: 'Имя — от 2 до 20 символов' }); if (s.authMode === 'register' && (a.password.length < 8 || a.password.length > 72)) return this.setState({ authErr: 'Пароль — от 8 до 72 символов' }); if (!a.password) return this.setState({ authErr: 'Введите пароль' }); this.setState((x) => ({ authed: true, screen: 'dashboard', user: x.authMode === 'register' ? { ...x.user, name: a.name.trim() || x.user.name, email: a.email } : x.user, auth: { ...a, password: '' } })); },
+      logout: () => this.setState({ authed: false, authMode: 'login', drOpen: false }),
+      // nav
+      navItems: NAV.map(navView), tabsLeft: [NAV[0], NAV[1]].map(navView), tabsRight: [NAV[2], NAV[3]].map(navView),
+      title, subtitle, user: s.user, balanceTxt: rub(s.user.balance),
+      goProfile: () => this.go('profile'), goBudgets: () => this.go('budgets'), goTransactions: () => this.go('transactions'), goCategories: () => this.go('categories'),
+      isDashboard: s.screen === 'dashboard', showBento: s.screen === 'dashboard' && variant === 'bento', showFocus: s.screen === 'dashboard' && variant === 'focus',
+      isTransactions: s.screen === 'transactions', isBudgets: s.screen === 'budgets', isAnalytics: s.screen === 'analytics', isCategories: s.screen === 'categories', isProfile: s.screen === 'profile',
+      // dashboard
+      m, legend, donutBg, catCountTxt: `${legend.length} ${plural(legend.length, 'категория', 'категории', 'категорий')}`, budgetRows, recent, feedGroups, yr,
+      ringBg: `conic-gradient(var(--pink-400) 0%, var(--purple-400) ${m.pctW * 0.3}%, var(--blue-400) ${m.pctW * 0.55}%, var(--cyan-300) ${m.pctW * 0.8}%, var(--teal-300) ${m.pctW}%, var(--bg-emphasized) ${m.pctW}% 100%)`,
+      // transactions
+      f, filtersOpen: s.filtersOpen, filterBtnVariant: s.filtersOpen ? 'subtle' : 'outline', hasActiveFilters: activeFilterCount > 0, noActiveFilters: activeFilterCount === 0, activeFilterCount,
+      toggleFilters: () => this.setState((x) => ({ filtersOpen: !x.filtersOpen })),
+      onQ: (e) => this.setState({ f: { ...s.f, q: e.target.value } }), onFCat: (e) => this.setState({ f: { ...s.f, cat: e.target.value } }),
+      onFMin: (e) => this.setState({ f: { ...s.f, min: e.target.value } }), onFMax: (e) => this.setState({ f: { ...s.f, max: e.target.value } }),
+      onFFrom: (e) => this.setState({ f: { ...s.f, from: e.target.value } }), onFTo: (e) => this.setState({ f: { ...s.f, to: e.target.value } }),
+      resetFilters: () => this.setState({ f: { ...s.f, cat: '', min: '', max: '', from: '', to: '' } }), resetAll: () => this.setState({ f: { q: '', cat: '', min: '', max: '', from: '', to: '' } }),
+      catFilterOptions: [{ value: '', label: 'Все категории' }, ...cats.map((c) => ({ value: String(c.id), label: c.name }))],
+      txGroups: groupBy(filtered), hasTxResults: filtered.length > 0, noTxResults: filtered.length === 0,
+      txCountTxt: `${filtered.length} ${plural(filtered.length, 'операция', 'операции', 'операций')}`, txTotalTxt: rub(fTotal),
+      // budgets
+      bMonthLabel: ymLabel(bm), prevBMonth: () => this.setState({ bMonth: ymShift(bm, -1), bForm: null, bEdit: null }), nextBMonth: () => this.setState({ bMonth: ymShift(bm, 1), bForm: null, bEdit: null }),
+      hasOverall: !!bOverall, noOverall: !bOverall, overallNotEditing: !ov.editing, ov, bCards: bCatList.map(budgetView),
+      unbudgeted: unbudgetedCats.map((c) => ({ name: c.name, grad: c.grad, onAdd: () => openBFormWith(String(c.id)) })), hasUnbudgeted: unbudgetedCats.length > 0 && (bCatList.length > 0 || !!bOverall),
+      bMonthEmpty: !bOverall && bCatList.length === 0, bEmptyTitle: `На ${MON[+bm.split('-')[1] - 1]} бюджетов нет`,
+      bFormOpen: !!s.bForm, bForm: s.bForm || { cat: '', limit: '' }, bFormOptions, noBOptions: bFormOptions.length === 0, bFormInvalid: !(s.bForm && s.bForm.cat && parseAmt(s.bForm.limit)),
+      openBForm: () => openBFormWith(bFormOptions[0] ? bFormOptions[0].value : ''), openOverallForm: () => openBFormWith('overall'), closeBForm: () => this.setState({ bForm: null }),
+      onBFormCat: (e) => this.setState({ bForm: { ...s.bForm, cat: e.target.value } }), onBFormLimit: (e) => this.setState({ bForm: { ...s.bForm, limit: e.target.value } }),
+      saveBForm: () => { const bf = s.bForm; const v = parseAmt(bf.limit); if (!bf.cat || !v) return; const cat = bf.cat === 'overall' ? null : +bf.cat; this.setState((x) => ({ budgets: [...x.budgets, { id: Date.now(), ym: bm, cat, limit: v }], bForm: null })); this.showToast('Бюджет создан', `${cat ? catMap[cat].name : 'Общий бюджет'}: ${rub(v)} на ${MON[+bm.split('-')[1] - 1]}`); },
+      // analytics
+      an, ay, anPreset: s.anPreset, anYear: s.anYear, anPresets: [{ value: 'month', label: 'Месяц' }, { value: 'quarter', label: '3 месяца' }, { value: 'year', label: 'Год' }],
+      setAnPreset: (v) => this.setState({ anPreset: v }), prevYear: () => this.setState({ anYear: 2025 }), nextYear: () => this.setState({ anYear: 2026 }), noPrevYear: s.anYear <= 2025, noNextYear: s.anYear >= 2026,
+      // categories
+      catRows, newCat: s.newCat, catErr: s.catErr, hasCatErr: !!s.catErr, newCatEmpty: !s.newCat.trim(), catsCountTxt: String(cats.length),
+      onNewCat: (e) => this.setState({ newCat: e.target.value, catErr: '' }),
+      addCat: (e) => { e.preventDefault(); const v = s.newCat.trim(); if (!v) return; if (s.cats.some((c) => c.name.toLowerCase() === v.toLowerCase())) return this.setState({ catErr: `Категория «${v}» уже есть` }); const id = Math.max(0, ...s.cats.map((c) => c.id)) + 1; this.setState((x) => ({ cats: [...x.cats, { id, name: v, icon: 'tag', pal: x.cats.length }], newCat: '' })); this.showToast('Категория добавлена', v); },
+      // profile
+      balEdit: s.balEdit, notBalEdit: !s.balEdit, balDraft: s.balDraft,
+      startBalEdit: () => this.setState({ balEdit: true, balDraft: String(s.user.balance) }), onBalDraft: (e) => this.setState({ balDraft: e.target.value }),
+      saveBal: (e) => { e.preventDefault(); const v = parseFloat(String(s.balDraft).replace(/\s/g, '').replace(',', '.')); if (!isFinite(v)) return; this.setState((x) => ({ user: { ...x.user, balance: Math.round(v * 100) / 100 }, balEdit: false })); this.showToast('Баланс обновлён', rub(v)); },
+      // drawer
+      dr, dw, catOptions: cats.map((c) => ({ value: String(c.id), label: c.name })), noMoreSplits: d.splits.length >= cats.length,
+      openNew: () => this.setState({ dr: { ...this.blankDraft(), time: (() => { const n = new Date(); return String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); })() }, drOpen: true }),
+      closeDrawer: () => this.setState({ drOpen: false }),
+      onDrAmount: (e) => this.setDr({ amount: e.target.value.replace(/[^\d.,\s]/g, '') }), onDrDesc: (e) => this.setDr({ desc: e.target.value }),
+      onDrDate: (e) => this.setDr({ date: e.target.value }), onDrTime: (e) => this.setDr({ time: e.target.value }),
+      addSplit: () => this.setState((st) => { const sp = st.dr.splits.map((x) => ({ ...x })); if (sp.length === 1) sp[0].amount = st.dr.amount; const free = st.cats.find((c) => !sp.some((x) => String(x.cat) === String(c.id))); sp.push({ cat: String(free ? free.id : st.cats[0].id), amount: '' }); return { dr: { ...st.dr, splits: sp } }; }),
+      splitEven: () => this.setState((st) => { const t = parseAmt(st.dr.amount); const n = st.dr.splits.length; if (!t) return null; const each = Math.floor((t / n) * 100) / 100; return { dr: { ...st.dr, splits: st.dr.splits.map((x, i) => ({ ...x, amount: String(i === n - 1 ? Math.round((t - each * (n - 1)) * 100) / 100 : each) })) } }; }),
+      fillRemainder: () => this.setState((st) => { const sp = st.dr.splits.map((x) => ({ ...x })); let i = sp.findIndex((x) => !parseAmt(x.amount)); if (i < 0) i = sp.length - 1; sp[i].amount = String(Math.round((parseAmt(sp[i].amount) + rem) * 100) / 100); return { dr: { ...st.dr, splits: sp } }; }),
+      saveTx: () => {
+        if (!valid) return; const t = { id: d.id ?? Date.now(), desc: d.desc.trim(), date: d.date || TODAY, time: d.time || '12:00', amount: total, splits: multi ? d.splits.map((x, i) => ({ cat: +x.cat, amount: amts[i] })) : [{ cat: +d.splits[0].cat, amount: total }] };
+        this.setState((x) => ({ txs: d.mode === 'edit' ? x.txs.map((y) => (y.id === d.id ? t : y)) : [t, ...x.txs], drOpen: false }));
+        this.showToast(d.mode === 'edit' ? 'Изменения сохранены' : 'Трата добавлена', `${t.desc} · ${rub(total)}`);
+      },
+      deleteTx: () => { if (!d.confirmDel) return this.setDr({ confirmDel: true }); this.setState((x) => ({ txs: x.txs.filter((y) => y.id !== d.id), drOpen: false })); this.showToast('Трата удалена', d.desc, 'info'); },
+      // toast
+      hasToast: !!s.toast, toast: s.toast || {}, closeToast: () => this.setState({ toast: null }), toastBottom: isMobile ? '84px' : '24px', toastJustify: isMobile ? 'center' : 'flex-end',
+    };
+  }
+
+  openEdit(id) {
+    const t = this.state.txs.find((x) => x.id === id); if (!t) return;
+    this.setState({ dr: { mode: 'edit', id: t.id, amount: String(t.amount), desc: t.desc, date: t.date, time: t.time, splits: t.splits.map((x) => ({ cat: String(x.cat), amount: t.splits.length > 1 ? String(x.amount) : '' })), confirmDel: false }, drOpen: true });
+  }
+}
+</script>
+</body>
+</html>

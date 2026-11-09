@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AmplicodePersistenceUnitSettings">
+    <persistence-units>
+      <persistence-unit moduleName="cash-tracker" name="Default">
+        <packages>
+          <package value="dev.zhulidov.cash_tracker" />
+        </packages>
+      </persistence-unit>
+      <persistence-unit moduleName="cash-tracker-app" name="Default">
+        <packages>
+          <package value="dev.zhulidov.cash_tracker" />
+        </packages>
+      </persistence-unit>
+      <persistence-unit moduleName="cash-tracker-transactions" name="Default" />
+      <persistence-unit moduleName="cash-tracker-notifications" name="Default" />
+    </persistence-units>
+  </component>
+</project>

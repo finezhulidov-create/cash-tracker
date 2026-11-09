@@ -23,7 +23,7 @@ COPY cash-tracker-transactions/src cash-tracker-transactions/src
 RUN mvn clean package -DskipTests -B
 
 # ---- Final stage ----
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 # Собранный jar лежит в target конкретно модуля cash-tracker-app (finalName: cash-tracker-app)
 COPY --from=build /app/cash-tracker-app/target/cash-tracker-app.jar app.jar

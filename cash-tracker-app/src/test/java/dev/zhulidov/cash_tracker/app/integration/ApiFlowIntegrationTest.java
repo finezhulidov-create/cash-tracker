@@ -586,6 +586,43 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void transactionsList_searchesByDescriptionIgnoringCaseAndOnlyAmongOwnTransactions() throws Exception {
+        String token = registerAndLogin();
+        String stranger = registerAndLogin();
+        long food = createCategory(token, "Food")[0];
+        long foreign = createCategory(stranger, "Food")[0];
+        createTransactionWithDescription(token, "Супермаркет Лента", "300.00", food);
+        createTransactionWithDescription(token, "Кофе", "150.00", food);
+        createTransactionWithDescription(stranger, "Супермаркет чужой", "10.00", foreign);
+
+        mockMvc.perform(get("/v1/transactions").param("q", "СУПЕРМАРКЕТ").with(bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].description").value("Супермаркет Лента"));
+
+        // поиск сочетается с остальными фильтрами
+        mockMvc.perform(get("/v1/transactions").param("q", "е").param("minAmount", "200").with(bearer(token)))
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].description").value("Супермаркет Лента"));
+
+        mockMvc.perform(get("/v1/transactions").param("q", "ничего такого").with(bearer(token)))
+                .andExpect(jsonPath("$.page.totalElements").value(0));
+
+        mockMvc.perform(get("/v1/transactions").param("q", "x".repeat(256)).with(bearer(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"));
+    }
+
+    private void createTransactionWithDescription(String token, String description, String amount, long categoryId)
+            throws Exception {
+        var body = transactionBody(amount, "2026-10-05T10:00:00", part(categoryId, amount));
+        body.put("description", description);
+        mockMvc.perform(post("/v1/transactions").with(bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(json(body)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void transactionsList_withUnknownSortProperty_returns400InsteadOf500() throws Exception {
         String token = registerAndLogin();
 

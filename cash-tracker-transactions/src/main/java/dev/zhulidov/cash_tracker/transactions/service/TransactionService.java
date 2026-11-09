@@ -35,6 +35,9 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
+    /** Совпадает с ограничением длины описания траты. */
+    private static final int MAX_SEARCH_LENGTH = 255;
+
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionMapper transactionMapper;
@@ -108,11 +111,15 @@ public class TransactionService {
                 && criteria.getMinAmount().compareTo(criteria.getMaxAmount()) > 0) {
             throw new InvalidRequestException("'minAmount' must not be greater than 'maxAmount'");
         }
+        if (criteria.getQ() != null && criteria.getQ().length() > MAX_SEARCH_LENGTH) {
+            throw new InvalidRequestException("'q' must not be longer than " + MAX_SEARCH_LENGTH + " characters");
+        }
         Specification<Transaction> spec =
                 TransactionSpecifications.hasUserId(userId)
                 .and(TransactionSpecifications.hasCategoryId(criteria.getCategoryId()))
                 .and(TransactionSpecifications.amountBetween(criteria.getMinAmount(),criteria.getMaxAmount()))
-                .and(TransactionSpecifications.dateBetween(criteria.getFrom(),criteria.getTo()));
+                .and(TransactionSpecifications.dateBetween(criteria.getFrom(),criteria.getTo()))
+                .and(TransactionSpecifications.descriptionContains(criteria.getQ()));
         var page = transactionRepository.findAll(spec,pageable);
         return transactionMapper.toDtoPage(page);
     }

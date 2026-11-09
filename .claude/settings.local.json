@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -o test -Dtest=CashTrackerApplicationTests)"
+    ]
+  }
+}

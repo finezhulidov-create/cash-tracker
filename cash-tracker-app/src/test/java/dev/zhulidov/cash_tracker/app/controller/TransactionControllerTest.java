@@ -451,6 +451,7 @@ class TransactionControllerTest {
                         .param("maxAmount", "100")
                         .param("from", "2026-10-01T00:00:00")
                         .param("to", "2026-10-31T23:59:59")
+                        .param("q", "супермаркет")
                         .param("page", "1").param("size", "5").param("sort", "amount,asc")
                         .with(authentication(authToken())))
                 .andExpect(status().isOk());
@@ -463,6 +464,7 @@ class TransactionControllerTest {
         assertEquals(new BigDecimal("100"), criteria.getValue().getMaxAmount());
         assertEquals(LocalDateTime.of(2026, 10, 1, 0, 0), criteria.getValue().getFrom());
         assertEquals(LocalDateTime.of(2026, 10, 31, 23, 59, 59), criteria.getValue().getTo());
+        assertEquals("супермаркет", criteria.getValue().getQ());
         assertEquals(1, pageable.getValue().getPageNumber());
         assertEquals(5, pageable.getValue().getPageSize());
         assertEquals(Sort.Direction.ASC, pageable.getValue().getSort().getOrderFor("amount").getDirection());

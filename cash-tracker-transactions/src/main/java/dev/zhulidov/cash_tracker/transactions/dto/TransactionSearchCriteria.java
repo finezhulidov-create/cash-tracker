@@ -28,4 +28,6 @@ public class TransactionSearchCriteria {
     @Schema(description = "По какой момент (включительно), ISO-8601", example = "2026-10-31T23:59:59")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime to;
+    @Schema(description = "Подстрока описания траты, без учёта регистра; до 255 символов", example = "супермаркет")
+    private String q;
 }

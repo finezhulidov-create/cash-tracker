@@ -28,6 +28,20 @@ public class TransactionSpecifications {
         };
     }
 
+    /**
+     * Описание содержит подстроку без учёта регистра. Символы LIKE ({@code %}, {@code _}) и экранирующий
+     * {@code \} из запроса пользователя ищутся как обычный текст.
+     */
+    public static Specification<Transaction> descriptionContains(String q) {
+        if (q == null || q.isBlank()) return null;
+        String escaped = q.strip().toLowerCase()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return (root, query, cb) ->
+                cb.like(cb.lower(root.get("description")), "%" + escaped + "%", '\\');
+    }
+
     /** Период с включёнными границами; можно указать только одну из них (открытый диапазон). */
     public static Specification<Transaction> dateBetween(LocalDateTime from, LocalDateTime to) {
         if (from == null && to == null) return null;

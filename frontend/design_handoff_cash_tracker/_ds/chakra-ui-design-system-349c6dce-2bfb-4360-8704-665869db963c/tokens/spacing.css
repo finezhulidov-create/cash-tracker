@@ -1,0 +1,67 @@
+/* Spacing + sizes — tokens/spacing.ts, sizes.ts, breakpoints.ts, z-indices.ts */
+:root {
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-4-5: 1.125rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-11: 2.75rem;
+  --space-12: 3rem;
+  --space-14: 3.5rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-28: 7rem;
+  --space-32: 8rem;
+  --space-40: 10rem;
+  --space-48: 12rem;
+  --space-64: 16rem;
+  --space-80: 20rem;
+  --space-96: 24rem;
+
+  /* Named container sizes */
+  --size-3xs: 14rem;
+  --size-2xs: 16rem;
+  --size-xs: 20rem;
+  --size-sm: 24rem;
+  --size-md: 28rem;
+  --size-lg: 32rem;
+  --size-xl: 36rem;
+  --size-2xl: 42rem;
+  --size-3xl: 48rem;
+  --size-4xl: 56rem;
+  --size-5xl: 64rem;
+  --size-6xl: 72rem;
+  --size-7xl: 80rem;
+  --size-8xl: 90rem;
+
+  /* Breakpoints (reference only — CSS vars can't be used in media queries) */
+  --breakpoint-sm: 480px; /* @kind spacing */
+  --breakpoint-md: 768px; /* @kind spacing */
+  --breakpoint-lg: 1024px; /* @kind spacing */
+  --breakpoint-xl: 1280px; /* @kind spacing */
+  --breakpoint-2xl: 1536px; /* @kind spacing */
+
+  --z-hide: -1; /* @kind other */
+  --z-base: 0; /* @kind other */
+  --z-docked: 10; /* @kind other */
+  --z-dropdown: 1000; /* @kind other */
+  --z-sticky: 1100; /* @kind other */
+  --z-banner: 1200; /* @kind other */
+  --z-overlay: 1300; /* @kind other */
+  --z-modal: 1400; /* @kind other */
+  --z-popover: 1500; /* @kind other */
+  --z-skip-nav: 1600; /* @kind other */
+  --z-toast: 1700; /* @kind other */
+  --z-tooltip: 1800; /* @kind other */
+}
