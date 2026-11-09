@@ -149,3 +149,9 @@ export interface ErrorResponse {
   errorCode: string
   errors?: Record<string, string> | null
 }
+
+/** Операция из PDF-выписки после разбора: та же трата, что и в форме, плюс пометка дубля. */
+export interface ImportPreviewItem extends TransactionRequest {
+  /** Такая трата (та же минута и сумма) уже есть в приложении */
+  duplicate: boolean
+}

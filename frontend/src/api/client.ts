@@ -70,14 +70,16 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const headers: Record<string, string> = { Accept: 'application/json' }
   const authorization = authorizationHeader()
   if (authorization) headers.Authorization = authorization
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // FormData (загрузка файла) уходит как есть: Content-Type с границей частей браузер поставит сам
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
 
   let response: Response
   try {
     response = await fetch(buildUrl(path, query), {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
       signal,
     })
   } catch (error) {

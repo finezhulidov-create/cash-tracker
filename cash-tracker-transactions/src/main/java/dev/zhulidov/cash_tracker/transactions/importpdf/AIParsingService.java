@@ -36,9 +36,31 @@ public class AIParsingService {
       List<TransactionCreateRequest> requests = new ArrayList<>();
       List<String> pages =  importService.extractText(multipartFile);
       List<ParsedOperations> result = new ArrayList<>();
-      for (String page : pages){
-            result.add(parser.parse(page));
+      int failedPages = 0;
+      for (int i = 0; i < pages.size(); i++){
+            String page = pages.get(i);
+            log.info("Statement page {}/{}: sending {} chars to the model", i + 1, pages.size(), page.length());
+            long started = System.currentTimeMillis();
+            try {
+                ParsedOperations parsed = parser.parse(page);
+                result.add(parsed);
+                int found = parsed == null || parsed.operations() == null ? 0 : parsed.operations().size();
+                log.info("Statement page {}/{}: {} operations in {} ms", i + 1, pages.size(), found,
+                        System.currentTimeMillis() - started);
+            } catch (StatementParsingException e) {
+                if (e.isModelUnavailable()) {
+                    log.warn("Statement page {}/{}: model is unavailable after {} ms", i + 1, pages.size(),
+                            System.currentTimeMillis() - started, e);
+                    throw e;
+                }
+                // мусор на одной странице не должен ронять весь импорт
+                failedPages++;
+                log.warn("Statement page {}/{}: unusable model answer, page skipped", i + 1, pages.size(), e);
+            }
         }
+      if (!pages.isEmpty() && failedPages == pages.size()){
+          throw StatementParsingException.badResponse(null);
+      }
       List<ParsedOperations.OneOperation> operationsjson = new ArrayList<>();
       result.stream().filter(Objects::nonNull).map(ParsedOperations::operations)
               .filter(Objects::nonNull)

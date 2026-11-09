@@ -28,3 +28,29 @@ describe('errorMessage — ИИ-советник', () => {
     expect(errorMessage(new Error('boom'))).toBe('Что-то пошло не так. Попробуйте ещё раз.')
   })
 })
+
+describe('errorMessage — импорт выписки', () => {
+  it('explains that the uploaded file is too large', () => {
+    const error = new ApiError(413, 'Maximum upload size exceeded', 'HTTP_413')
+
+    expect(errorMessage(error)).toBe('Файл слишком большой: можно загрузить до 10 МБ')
+  })
+
+  it('explains that the parsing model is not reachable', () => {
+    const error = new ApiError(503, 'Statement parsing model is unavailable', 'IMPORT_MODEL_UNAVAILABLE')
+
+    expect(errorMessage(error)).toMatch(/LM Studio запущена/)
+  })
+
+  it('explains that the model could not read the statement', () => {
+    const error = new ApiError(502, 'Statement parsing model returned an unusable answer', 'IMPORT_BAD_RESPONSE')
+
+    expect(errorMessage(error)).toMatch(/не смогла разобрать выписку/)
+  })
+
+  it('shows the server explanation for a file that is not PDF', () => {
+    const error = new ApiError(400, 'Поддержка только пдф файлов', 'INVALID_REQUEST')
+
+    expect(errorMessage(error)).toBe('Поддержка только пдф файлов')
+  })
+})

@@ -240,6 +240,43 @@ class AIParsingServiceTest {
         assertSame(preview, service.generateTransactions(file, USER_ID));
     }
 
+    // ==================== сбои модели ====================
+
+    @Test
+    void unusablePage_isSkippedAndOtherPagesAreImported() {
+        when(importService.extractText(file)).thenReturn(List.of("page 0", "page 1"));
+        when(parser.parse("page 0")).thenThrow(StatementParsingException.badResponse(new IllegalStateException("not json")));
+        when(parser.parse("page 1")).thenReturn(answer(operation("29.10.2026 09:15", "Такси", "1200,00")));
+
+        var requests = requestsSentToDetector();
+
+        assertEquals(List.of("Такси"), requests.stream().map(TransactionCreateRequest::description).toList());
+    }
+
+    @Test
+    void allPagesUnusable_isBadResponse() {
+        when(importService.extractText(file)).thenReturn(List.of("page 0", "page 1"));
+        when(parser.parse(any())).thenThrow(StatementParsingException.badResponse(new IllegalStateException("not json")));
+
+        var e = assertThrows(StatementParsingException.class, () -> service.generateTransactions(file, USER_ID));
+
+        assertEquals(StatementParsingException.BAD_RESPONSE, e.getErrorCode());
+        verifyNoInteractions(detector);
+    }
+
+    @Test
+    void unavailableModel_stopsImportAtFirstPage() {
+        when(importService.extractText(file)).thenReturn(List.of("page 0", "page 1", "page 2"));
+        when(parser.parse("page 0")).thenThrow(StatementParsingException.modelUnavailable(new RuntimeException("refused")));
+
+        var e = assertThrows(StatementParsingException.class, () -> service.generateTransactions(file, USER_ID));
+
+        assertTrue(e.isModelUnavailable());
+        // остальные страницы не отправляются: модель всё равно не ответит
+        verify(parser, times(1)).parse(any());
+        verifyNoInteractions(detector, categoryService);
+    }
+
     @Test
     void notPdf_failsBeforeCallingModel() {
         when(importService.extractText(file)).thenThrow(new InvalidRequestException("Поддержка только пдф файлов"));

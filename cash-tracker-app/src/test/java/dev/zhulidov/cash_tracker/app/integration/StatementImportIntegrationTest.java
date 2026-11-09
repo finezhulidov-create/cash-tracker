@@ -6,6 +6,7 @@ import dev.zhulidov.cash_tracker.app.AbstractIntegrationTest;
 import dev.zhulidov.cash_tracker.transactions.dto.ParsedOperations;
 import dev.zhulidov.cash_tracker.transactions.dto.ParsedOperations.OneOperation;
 import dev.zhulidov.cash_tracker.transactions.importpdf.AiParser;
+import dev.zhulidov.cash_tracker.transactions.importpdf.StatementParsingException;
 import dev.zhulidov.cash_tracker.transactions.repository.CategoryRepository;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -238,6 +239,19 @@ class StatementImportIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(multipart("/v1/parsing").file(notPdf).with(bearer(token)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void parse_modelUnavailable_returns503AndSavesNothing() throws Exception {
+        String token = registerUser();
+        when(aiParser.parse(anyString()))
+                .thenThrow(StatementParsingException.modelUnavailable(new RuntimeException("connection refused")));
+
+        mockMvc.perform(multipart("/v1/parsing").file(statementPdf()).with(bearer(token)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errorCode").value("IMPORT_MODEL_UNAVAILABLE"));
+
+        assertEquals(0, transactionCount(token));
     }
 
     @Test

@@ -62,9 +62,15 @@ services:
       GIGACHAT_ENABLED: ${GIGACHAT_ENABLED:-false}
       GIGACHAT_AUTH_KEY: ${GIGACHAT_AUTH_KEY:-}
       GIGACHAT_CA_CERT_PATH: ${GIGACHAT_CA_CERT_PATH:-}
-      LMS_API_KEY: ${LMS_API_KEY}
-      LMS_API_URL: ${LMS_API_URL}
+      # Импорт PDF-выписок: модель в LM Studio (OpenAI-совместимый сервер). Пустые значения не передаём,
+      # иначе пустой адрес перекроет значение по умолчанию и приложение не стартует. По умолчанию —
+      # LM Studio на этом же сервере (host.docker.internal ведёт из контейнера на хост, см. extra_hosts)
+      LMS_API_URL: ${LMS_API_URL:-http://host.docker.internal:1234}
+      LMS_API_KEY: ${LMS_API_KEY:-lm-studio}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
+    extra_hosts:
+      # на Linux имя host.docker.internal само не появляется
+      - "host.docker.internal:host-gateway"
     volumes:
       # Корневые сертификаты Минцифры для ИИ-советника (файлы кладутся в deploy/certs/, только чтение)
       - ./certs:/certs:ro

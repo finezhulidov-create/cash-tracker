@@ -27,6 +27,7 @@ import { formatMoney, sanitizeAmountInput } from '../../lib/money'
 import { FORMS, plural } from '../../lib/plural'
 import { groupByDay, sumAmounts } from '../../lib/transactionView'
 import { useTransactionDrawer } from './drawerContext'
+import { StatementImportButton } from './StatementImport'
 import type { FilterFields } from './filters'
 import {
   countActiveFilters,
@@ -115,6 +116,7 @@ export function TransactionsPage() {
             </Badge>
           )}
         </Button>
+        <StatementImportButton />
       </Flex>
 
       {filtersOpen && (

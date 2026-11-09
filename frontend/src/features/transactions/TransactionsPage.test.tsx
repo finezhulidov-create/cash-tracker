@@ -56,6 +56,13 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('TransactionsPage', () => {
+  it('offers to import operations from a PDF statement', async () => {
+    mockTransactions([[dinner]])
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Импорт из PDF' })).toBeInTheDocument()
+  })
+
   it('groups expenses by day with a heading and the day total', async () => {
     mockTransactions([[dinner, metro, rent]])
     renderPage()

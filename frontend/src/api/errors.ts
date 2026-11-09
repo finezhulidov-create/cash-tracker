@@ -43,8 +43,13 @@ export function errorMessage(error: unknown): string {
       return 'У сервиса ИИ закончились токены. Сообщите администратору.'
     case 'AI_BAD_RESPONSE':
       return 'Модель вернула непригодный ответ. Попробуйте ещё раз.'
+    case 'IMPORT_MODEL_UNAVAILABLE':
+      return 'Модель для разбора выписок недоступна. Проверьте, что LM Studio запущена и её сервер включён.'
+    case 'IMPORT_BAD_RESPONSE':
+      return 'Модель не смогла разобрать выписку. Попробуйте ещё раз или выберите модель крупнее.'
   }
 
+  if (error.status === 413) return 'Файл слишком большой: можно загрузить до 10 МБ'
   if (error.status === 429) return 'Слишком много попыток, попробуйте через минуту'
   if (error.status >= 500) return 'Ошибка на сервере. Попробуйте позже.'
   if (error.status === 404) return 'Не найдено — возможно, запись уже удалена'

@@ -6,6 +6,7 @@ import type {
   CategoryDto,
   CategorySpendingDto,
   CreateBudgetRequest,
+  ImportPreviewItem,
   LoginRequest,
   MonthlySpendingDto,
   MonthSummaryDto,
@@ -62,6 +63,18 @@ export const transactionsApi = {
   update: (id: number, body: TransactionRequest) =>
     request<TransactionDto>(`/v1/transactions/${id}`, { method: 'PUT', body }),
   remove: (id: number) => request<void>(`/v1/transactions/${id}`, { method: 'DELETE' }),
+}
+
+export const statementImportApi = {
+  /** Разбор PDF-выписки моделью: идёт десятки секунд и дольше, поэтому запрос можно отменить. */
+  parse: (file: File, signal?: AbortSignal) => {
+    const body = new FormData()
+    body.append('file', file)
+    return request<ImportPreviewItem[]>('/v1/parsing', { method: 'POST', body, signal })
+  },
+  /** Сохраняет выбранные операции одной пачкой: либо все, либо ни одной. */
+  save: (transactions: TransactionRequest[]) =>
+    request<TransactionDto[]>('/v1/parsing/save', { method: 'POST', body: { transactions } }),
 }
 
 export const budgetsApi = {

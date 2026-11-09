@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { getSession, setSession } from '../auth/authStore'
 import { API, server } from '../test/server'
@@ -140,5 +141,38 @@ describe('request', () => {
       errorCode: 'INVALID_CREDENTIALS',
     })
     expect(getSession()).not.toBeNull()
+  })
+})
+
+describe('request — file upload', () => {
+  it('sends FormData as is, without the JSON Content-Type', async () => {
+    signIn()
+    server.use(http.post(`${API}/v1/parsing`, () => HttpResponse.json([])))
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const body = new FormData()
+    body.append('file', new File(['%PDF'], 'statement.pdf', { type: 'application/pdf' }))
+
+    await request('/v1/parsing', { method: 'POST', body })
+
+    const init = fetchSpy.mock.calls[0]![1]!
+    const headers = init.headers as Record<string, string>
+    // границу частей multipart в Content-Type ставит сам браузер; свой заголовок её бы сломал
+    expect(headers['Content-Type']).toBeUndefined()
+    expect(headers.Authorization).toBe('Bearer abc')
+    expect(init.body).toBe(body)
+    fetchSpy.mockRestore()
+  })
+
+  it('still sends plain objects as JSON', async () => {
+    signIn()
+    server.use(http.post(`${API}/v1/parsing/save`, () => HttpResponse.json([])))
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+    await request('/v1/parsing/save', { method: 'POST', body: { transactions: [] } })
+
+    const init = fetchSpy.mock.calls[0]![1]!
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+    expect(init.body).toBe('{"transactions":[]}')
+    fetchSpy.mockRestore()
   })
 })

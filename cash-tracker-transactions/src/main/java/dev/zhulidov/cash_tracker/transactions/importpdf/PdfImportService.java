@@ -27,6 +27,7 @@ public class PdfImportService {
                 stripper.setStartPage(page);
                 stripper.setEndPage(page);
                 String pageText = stripper.getText(document);
+                log.info("Page added");
                 allPages.add(pageText);
             }
             return allPages;

@@ -5,6 +5,7 @@ import {
   analyticsApi,
   budgetsApi,
   categoriesApi,
+  statementImportApi,
   transactionsApi,
   usersApi,
 } from './endpoints'
@@ -202,6 +203,26 @@ export function useMonthlySpending(year: number) {
   return useQuery({
     queryKey: keys.monthly(year),
     queryFn: () => analyticsApi.monthly(year),
+  })
+}
+
+// ---------- импорт выписки ----------
+
+/** Разбор выписки. Сервер может создать категорию «Прочее», поэтому список категорий обновляется. */
+export function useParseStatement() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ file, signal }: { file: File; signal?: AbortSignal }) =>
+      statementImportApi.parse(file, signal),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.categories }),
+  })
+}
+
+export function useSaveImportedTransactions() {
+  const invalidate = useInvalidateAfterTransactionChange()
+  return useMutation({
+    mutationFn: (transactions: TransactionRequest[]) => statementImportApi.save(transactions),
+    onSuccess: invalidate,
   })
 }
 

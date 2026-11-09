@@ -14,6 +14,7 @@ import dev.zhulidov.cash_tracker.transactions.dto.TransactionCreateRequest;
 import dev.zhulidov.cash_tracker.transactions.dto.TransactionDto;
 import dev.zhulidov.cash_tracker.transactions.importpdf.AIParsingService;
 import dev.zhulidov.cash_tracker.transactions.importpdf.PacketTransactionService;
+import dev.zhulidov.cash_tracker.transactions.importpdf.StatementParsingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -129,6 +130,29 @@ class AiParsingControllerTest {
                         .with(authentication(authToken())).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void parse_modelUnavailable_returns503WithoutDetails() throws Exception {
+        when(parsingService.generateTransactions(any(), any()))
+                .thenThrow(StatementParsingException.modelUnavailable(new RuntimeException("http://192.168.31.14:1234 refused")));
+
+        mockMvc.perform(multipart("/v1/parsing").file(pdf())
+                        .with(authentication(authToken())).with(csrf()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errorCode").value("IMPORT_MODEL_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("Statement parsing model is unavailable"));
+    }
+
+    @Test
+    void parse_badModelAnswer_returns502() throws Exception {
+        when(parsingService.generateTransactions(any(), any()))
+                .thenThrow(StatementParsingException.badResponse(new IllegalStateException("not json")));
+
+        mockMvc.perform(multipart("/v1/parsing").file(pdf())
+                        .with(authentication(authToken())).with(csrf()))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.errorCode").value("IMPORT_BAD_RESPONSE"));
     }
 
     @Test
