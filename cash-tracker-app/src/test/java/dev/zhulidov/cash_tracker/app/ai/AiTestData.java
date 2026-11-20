@@ -26,6 +26,8 @@ final class AiTestData {
         private Duration queueTimeout = Duration.ofSeconds(2);
         private int rateLimitRequests = 3;
         private String keyPrefix = "ai-test:";
+        private String provider = "gigachat";
+        private String reasoningEffort = "";
 
         Props enabled(boolean value) {
             this.enabled = value;
@@ -57,11 +59,22 @@ final class AiTestData {
             return this;
         }
 
+        Props provider(String value) {
+            this.provider = value;
+            return this;
+        }
+
+        Props reasoningEffort(String value) {
+            this.reasoningEffort = value;
+            return this;
+        }
+
         AiProperties build() {
             return new AiProperties(enabled, authKey, "GIGACHAT_API_PERS",
                     "https://oauth.test/api/v2/oauth", "https://api.test/v1", "GigaChat-2-Pro",
                     0.3, 1500, Duration.ofSeconds(5), Duration.ofSeconds(90), queueTimeout,
-                    Duration.ofHours(6), rateLimitRequests, Duration.ofHours(1), caCertPath, keyPrefix);
+                    Duration.ofHours(6), rateLimitRequests, Duration.ofHours(1), caCertPath, keyPrefix,
+                    provider, reasoningEffort);
         }
     }
 

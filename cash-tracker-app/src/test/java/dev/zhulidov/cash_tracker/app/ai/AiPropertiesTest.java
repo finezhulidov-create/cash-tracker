@@ -49,6 +49,24 @@ class AiPropertiesTest {
     }
 
     @Test
+    void openAiCompatibleProviderIsBound() {
+        runner.withPropertyValues("gigachat.enabled=true", "gigachat.auth-key=sk-or-x", "gigachat.provider=OpenAI",
+                "gigachat.api-url=https://openrouter.ai/api/v1/", "gigachat.reasoning-effort=low").run(context -> {
+            AiProperties properties = context.getBean(AiProperties.class);
+            assertEquals("openai", properties.provider());
+            assertFalse(properties.usesOAuth());
+            assertEquals("https://openrouter.ai/api/v1", properties.apiUrl());
+            assertEquals("low", properties.reasoningEffort());
+        });
+    }
+
+    @Test
+    void unknownProviderStopsTheApplication() {
+        runner.withPropertyValues("gigachat.enabled=true", "gigachat.auth-key=k", "gigachat.provider=yandex")
+                .run(context -> assertTrue(rootMessage(context.getStartupFailure()).contains("gigachat.provider")));
+    }
+
+    @Test
     void enablingWithoutAKeyStopsTheApplicationWithAClearMessage() {
         runner.withPropertyValues("gigachat.enabled=true").run(context -> {
             Throwable failure = context.getStartupFailure();

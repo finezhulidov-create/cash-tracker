@@ -21,6 +21,8 @@ import java.util.UUID;
 
 /**
  * Тонкий клиент GigaChat: получает и кэширует токен доступа и выполняет запрос chat/completions.
+ * При {@code gigachat.provider=openai} OAuth не используется: ключ передаётся как Bearer-токен, так клиент
+ * работает с любым OpenAI-совместимым API (OpenRouter и т. п.).
  * Все сбои превращаются в {@link AiException} с понятным кодом; ключ, токен и тексты запросов в лог не пишутся.
  *
  * <p>Токен живёт 30 минут. Он обновляется заранее, а если сервер всё равно ответил 401 (токен отозван
@@ -62,6 +64,14 @@ public class GigaChatClient {
     }
 
     public ChatAnswer chat(String systemPrompt, String userMessage) {
+        if (!properties.usesOAuth()) {
+            // OpenAI-совместимый API: ключ сразу и есть токен, обновлять нечего и повтор при 401 не поможет
+            try {
+                return requestCompletion(properties.authKey(), systemPrompt, userMessage);
+            } catch (RestClientException e) {
+                throw translate(e);
+            }
+        }
         try {
             return requestCompletion(accessToken(), systemPrompt, userMessage);
         } catch (HttpClientErrorException.Unauthorized first) {
@@ -140,6 +150,9 @@ public class GigaChatClient {
         body.put("model", properties.model());
         body.put("temperature", properties.temperature());
         body.put("max_tokens", properties.maxTokens());
+        if (!properties.usesOAuth() && !properties.reasoningEffort().isEmpty()) {
+            body.put("reasoning", Map.of("effort", properties.reasoningEffort()));
+        }
         body.put("messages", List.of(
                 Map.of("role", "system", "content", systemPrompt),
                 Map.of("role", "user", "content", userMessage)));
@@ -183,7 +196,7 @@ public class GigaChatClient {
             int status = response.getStatusCode().value();
             switch (status) {
                 case 401, 403 -> {
-                    log.error("GigaChat rejected the credentials (HTTP {}): check GIGACHAT_AUTH_KEY and the scope", status);
+                    log.error("AI provider rejected the credentials (HTTP {}): check GIGACHAT_AUTH_KEY (and the scope for GigaChat)", status);
                     return AiException.authFailed();
                 }
                 case 402 -> {

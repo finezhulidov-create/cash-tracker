@@ -319,4 +319,46 @@ class GigaChatClientTest {
         assertFalse(error.getMessage().contains("tok-secret"));
         assertFalse(error.getMessage().contains("sber.local"));
     }
+
+    // ---------- OpenAI-совместимый провайдер (OpenRouter) ----------
+
+    @Test
+    void openAiProviderSendsTheKeyAsBearerWithoutOAuth() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer openAi = MockRestServiceServer.bindTo(builder).build();
+        GigaChatClient openAiClient = new GigaChatClient(
+                AiTestData.props().provider("openai").reasoningEffort("low").build(), builder, clock);
+        openAi.expect(once(), requestTo(CHAT)).andExpect(method(HttpMethod.POST))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer test-key"))
+                .andExpect(jsonPath("$.reasoning.effort").value("low"))
+                .andRespond(withSuccess(completion("ok", "stop"), MediaType.APPLICATION_JSON));
+
+        assertEquals("ok", openAiClient.chat("s", "u").text());
+        openAi.verify();
+    }
+
+    @Test
+    void openAiProviderDoesNotRetryOnUnauthorized() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer openAi = MockRestServiceServer.bindTo(builder).build();
+        GigaChatClient openAiClient = new GigaChatClient(AiTestData.props().provider("openai").build(), builder, clock);
+        openAi.expect(once(), requestTo(CHAT)).andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+
+        assertThrows(AiException.class, () -> openAiClient.chat("s", "u"));
+        openAi.verify();
+    }
+
+    @Test
+    void gigaChatProviderDoesNotSendReasoning() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer giga = MockRestServiceServer.bindTo(builder).build();
+        GigaChatClient gigaClient = new GigaChatClient(AiTestData.props().reasoningEffort("low").build(), builder, clock);
+        giga.expect(once(), requestTo(OAUTH)).andRespond(withSuccess("{\"access_token\":\"t\",\"expires_at\":"
+                + AiTestData.NOW.plus(Duration.ofMinutes(30)).toEpochMilli() + "}", MediaType.APPLICATION_JSON));
+        giga.expect(once(), requestTo(CHAT)).andExpect(jsonPath("$.reasoning").doesNotExist())
+                .andRespond(withSuccess(completion("ok", "stop"), MediaType.APPLICATION_JSON));
+
+        assertEquals("ok", gigaClient.chat("s", "u").text());
+        giga.verify();
+    }
 }
