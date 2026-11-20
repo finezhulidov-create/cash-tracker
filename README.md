@@ -221,6 +221,8 @@ npm run dev        # http://localhost:5173
 | `gigachat.enabled` (`GIGACHAT_ENABLED`) | `false` | Включает ИИ-советника. Если `true`, а ключа нет, приложение не запустится |
 | `gigachat.auth-key` (`GIGACHAT_AUTH_KEY`) | пусто | Ключ авторизации GigaChat API из личного кабинета Сбера. Только в окружении, не в файлах репозитория |
 | `gigachat.ca-cert-path` (`GIGACHAT_CA_CERT_PATH`) | пусто | Файлы корневых сертификатов Минцифры через запятую (PEM или DER) |
+| `gigachat.provider` (`GIGACHAT_PROVIDER`) | `gigachat` | `openai` — любой OpenAI-совместимый API (например, OpenRouter): ключ передаётся как Bearer-токен, без OAuth. Адрес и модель — `GIGACHAT_API_URL` (`https://openrouter.ai/api/v1`) и `GIGACHAT_MODEL` |
+| `gigachat.reasoning-effort` (`GIGACHAT_REASONING_EFFORT`) | пусто | Только для `openai`: `low`/`medium`/`high` для «думающих» моделей. Рассуждения расходуют `max-tokens`, поэтому его стоит поднять |
 | `spring.ai.openai.base-url` (`LMS_API_URL`) | `http://localhost:1234` | Адрес OpenAI-совместимого сервера с моделью для разбора выписок, без `/v1` |
 | `spring.ai.openai.api-key` (`LMS_API_KEY`) | `lm-studio` (`prod`: `none`) | Ключ сервера модели. LM Studio без авторизации принимает любое значение, но пустым его оставлять нельзя |
 | `spring.ai.openai.chat.options.model` | `qwen3.5-9b` | Имя модели, как оно показано в LM Studio |

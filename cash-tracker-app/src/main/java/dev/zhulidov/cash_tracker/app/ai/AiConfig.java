@@ -29,7 +29,7 @@ public class AiConfig {
         }
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(http.build());
         factory.setReadTimeout(properties.readTimeout());
-        log.info("AI advisor is {}", properties.enabled() ? "enabled (model " + properties.model() + ")" : "disabled");
+        log.info("AI advisor is {}", properties.enabled() ? "enabled (provider " + properties.provider() + ", model " + properties.model() + ")" : "disabled");
         return new GigaChatClient(properties, RestClient.builder().requestFactory(factory), clock);
     }
 }

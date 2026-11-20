@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Настройки ИИ-советника (GigaChat). По умолчанию функция выключена, и приложение работает без ключа.
+ * Настройки ИИ-советника (GigaChat или OpenAI-совместимый API, например OpenRouter). По умолчанию функция выключена, и приложение работает без ключа.
  * Если она включена, но ключа нет, приложение не запустится: ошибка видна сразу, а не при первом запросе пользователя.
  *
  * @param enabled             включить ИИ-советник (GIGACHAT_ENABLED)
@@ -29,6 +29,11 @@ import java.util.List;
  * @param caCertPath          пути (через запятую) к PEM-файлам корневого и выпускающего сертификатов Минцифры (GIGACHAT_CA_CERT_PATH);
  *                            нужны, если Java не доверяет сертификатам серверов GigaChat
  * @param keyPrefix           префикс ключей в Redis (в тестах делается уникальным)
+ * @param provider            {@code gigachat} — GigaChat с получением OAuth-токена по ключу авторизации;
+ *                            {@code openai} — любой OpenAI-совместимый API (OpenRouter и т. п.), где auth-key
+ *                            сразу передаётся как Bearer-токен (GIGACHAT_PROVIDER)
+ * @param reasoningEffort     только для {@code openai}: уровень «размышлений» модели (low, medium, high);
+ *                            пусто — параметр не передаётся (GIGACHAT_REASONING_EFFORT)
  */
 @ConfigurationProperties(prefix = "gigachat")
 public record AiProperties(
@@ -47,13 +52,22 @@ public record AiProperties(
         @DefaultValue("10") int rateLimitRequests,
         @DefaultValue("1h") Duration rateLimitWindow,
         @DefaultValue("") String caCertPath,
-        @DefaultValue("ai:") String keyPrefix
+        @DefaultValue("ai:") String keyPrefix,
+        @DefaultValue(PROVIDER_GIGACHAT) String provider,
+        @DefaultValue("") String reasoningEffort
 ) {
+
+    public static final String PROVIDER_GIGACHAT = "gigachat";
+    public static final String PROVIDER_OPENAI = "openai";
 
     public AiProperties {
         authKey = normalizeKey(authKey);
         apiUrl = stripTrailingSlash(apiUrl);
+        provider = provider == null || provider.isBlank() ? PROVIDER_GIGACHAT : provider.trim().toLowerCase();
+        reasoningEffort = reasoningEffort == null ? "" : reasoningEffort.trim();
         if (enabled) {
+            require(PROVIDER_GIGACHAT.equals(provider) || PROVIDER_OPENAI.equals(provider),
+                    "gigachat.provider must be 'gigachat' or 'openai', got '" + provider + "'");
             require(!authKey.isBlank(), "gigachat.enabled=true, but gigachat.auth-key (GIGACHAT_AUTH_KEY) is empty");
             require(temperature > 0, "gigachat.temperature must be greater than 0");
             require(maxTokens > 0, "gigachat.max-tokens must be greater than 0");
@@ -62,6 +76,11 @@ public record AiProperties(
             require(isPositive(cacheTtl) && isPositive(rateLimitWindow), "gigachat.cache-ttl and gigachat.rate-limit-window must be positive");
             require(rateLimitRequests > 0, "gigachat.rate-limit-requests must be greater than 0");
         }
+    }
+
+    /** Нужно ли получать OAuth-токен (GigaChat) или ключ сразу идёт в заголовок Bearer (OpenAI-совместимые API). */
+    public boolean usesOAuth() {
+        return PROVIDER_GIGACHAT.equals(provider);
     }
 
     /** Файлы сертификатов, которым нужно доверять дополнительно к стандартным. */

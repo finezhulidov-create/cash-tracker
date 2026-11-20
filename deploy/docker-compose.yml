@@ -62,11 +62,22 @@ services:
       GIGACHAT_ENABLED: ${GIGACHAT_ENABLED:-false}
       GIGACHAT_AUTH_KEY: ${GIGACHAT_AUTH_KEY:-}
       GIGACHAT_CA_CERT_PATH: ${GIGACHAT_CA_CERT_PATH:-}
+      # Вместо GigaChat можно взять OpenAI-совместимый API (например, OpenRouter): GIGACHAT_PROVIDER=openai,
+      # адрес, модель и ключ — в .env. Значения по умолчанию совпадают с AiProperties: пустые не передаём
+      GIGACHAT_PROVIDER: ${GIGACHAT_PROVIDER:-gigachat}
+      GIGACHAT_API_URL: ${GIGACHAT_API_URL:-https://api.giga.chat/v1}
+      GIGACHAT_MODEL: ${GIGACHAT_MODEL:-GigaChat-2-Pro}
+      GIGACHAT_MAX_TOKENS: ${GIGACHAT_MAX_TOKENS:-1500}
+      GIGACHAT_REASONING_EFFORT: ${GIGACHAT_REASONING_EFFORT:-}
       # Импорт PDF-выписок: модель в LM Studio (OpenAI-совместимый сервер). Пустые значения не передаём,
       # иначе пустой адрес перекроет значение по умолчанию и приложение не стартует. По умолчанию —
       # LM Studio на этом же сервере (host.docker.internal ведёт из контейнера на хост, см. extra_hosts)
       LMS_API_URL: ${LMS_API_URL:-http://host.docker.internal:1234}
       LMS_API_KEY: ${LMS_API_KEY:-lm-studio}
+      # Модель и «размышления» для импорта выписок. Для OpenRouter: LMS_MODEL=<id модели>, а для моделей,
+      # которые не умеют отключать рассуждения, LMS_REASONING_EFFORT=low
+      SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL: ${LMS_MODEL:-qwen3.5-9b}
+      SPRING_AI_OPENAI_CHAT_OPTIONS_REASONING_EFFORT: ${LMS_REASONING_EFFORT:-none}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
     extra_hosts:
       # на Linux имя host.docker.internal само не появляется
